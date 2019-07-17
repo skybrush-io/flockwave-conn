@@ -226,21 +226,22 @@ class ConnectionBase(Connection):
 
             self.state_changed.send(self, old_state=old_state, new_state=new_state)
 
-            if new_state == ConnectionState.CONNECTED and not self._is_connected:
-                self._is_connected = True
+            print(repr(old_state), repr(new_state))
+
+            if new_state == ConnectionState.CONNECTED:
                 if self._is_connected_event:
                     self._is_connected_event.set()
                     self._is_connected_event = None
-                self.connected.send(self)
-
-            if new_state == ConnectionState.DISCONNECTED and self._is_connected:
-                self.disconnected.send(self)
-
-            if new_state != ConnectionState.CONNECTED and self._is_connected:
-                self._is_connected = False
+                if not self._is_connected:
+                    self._is_connected = True
+                    self.connected.send(self)
+            elif new_state == ConnectionState.DISCONNECTED:
                 if self._is_not_connected_event:
                     self._is_not_connected_event.set()
                     self._is_not_connected_event = None
+                if self._is_connected:
+                    self._is_connected = False
+                    self.disconnected.send(self)
 
     @property
     def swallow_exceptions(self):
