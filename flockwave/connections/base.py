@@ -226,8 +226,6 @@ class ConnectionBase(Connection):
 
             self.state_changed.send(self, old_state=old_state, new_state=new_state)
 
-            print(repr(old_state), repr(new_state))
-
             if new_state == ConnectionState.CONNECTED:
                 if self._is_connected_event:
                     self._is_connected_event.set()
