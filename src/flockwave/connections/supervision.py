@@ -1,5 +1,4 @@
-import attr
-
+from dataclasses import dataclass
 from functools import partial
 from trio import CancelScope, open_memory_channel, open_nursery, sleep
 from trio_util import wait_any
@@ -33,11 +32,11 @@ class ConnectionSupervisor:
     the supervision works in general.
     """
 
-    @attr.s
+    @dataclass
     class Entry:
-        policy: SupervisionPolicy = attr.ib()
-        cancel_scope: CancelScope = attr.ib(default=None)
-        task: Optional[ConnectionTask] = attr.ib(default=None)
+        policy: SupervisionPolicy
+        cancel_scope: CancelScope
+        task: Optional[ConnectionTask] = None
 
         def cancel(self):
             self.cancel_scope.cancel()

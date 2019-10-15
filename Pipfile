@@ -12,7 +12,6 @@ trio-util = "*"
 mido = "*"
 pyserial = "*"
 python-rtmidi = "*"
-attrs = "*"
 netifaces = "*"
 
 [requires]
