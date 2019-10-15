@@ -3,6 +3,7 @@
 *.pyo
 .python-version
 .tags
+.venv/
 build/
 dist/
 .eggs/

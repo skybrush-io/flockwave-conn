@@ -4,7 +4,7 @@ from glob import glob
 from os.path import basename, splitext
 from setuptools import setup, find_packages
 
-requires = ["blinker>=1.4", "enum-compat>=0.0.2", "future>=0.17.1"]
+requires = ["attr>=19.3.0", "blinker>=1.4", "trio>=0.12.1", "trio_util>=0.1.0"]
 
 __version__ = None
 exec(open("src/flockwave/connections/version.py").read())
@@ -20,6 +20,9 @@ setup(
     include_package_data=True,
     python_requires=">=3.7",
     install_requires=requires,
-    extras_require={},
+    extras_require={
+        "midi": ["mido>=1.2.9", "python-rtmidi>=1.3.1"],
+        "serial": ["pyserial>=3.4"],
+    },
     test_suite="test",
 )

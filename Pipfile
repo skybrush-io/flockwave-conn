@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+blinker = "*"
+trio = "*"
+trio-util = "*"
+attr = "*"
+mido = "*"
+pyserial = "*"
+python-rtmidi = "*"
+
+[requires]
+python_version = "3.7"

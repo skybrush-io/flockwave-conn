@@ -2,17 +2,13 @@
 from a simple string or dict representation.
 """
 
-from future.standard_library import install_aliases
-install_aliases()
+from functools import partial
+from urllib.parse import parse_qs, urlparse
 
-from functools import partial                             # noqa: E402
-from future.utils import iteritems, string_types          # noqa: E402
-from urllib.parse import parse_qs, urlparse               # noqa: E402
-
-from .errors import UnknownConnectionTypeError            # noqa: E402
+from .errors import UnknownConnectionTypeError
 
 
-__all__ = ("ConnectionFactory", "create_connection")
+__all__ = ("ConnectionFactory", "create_connection", "create_connection_factory")
 
 
 class ConnectionFactory(object):
@@ -91,7 +87,7 @@ class ConnectionFactory(object):
             UnknownConnectionTypeError: if the type of the connection is not
                 known to the server
         """
-        if isinstance(specification, string_types):
+        if isinstance(specification, str):
             specification = self._url_specification_to_dict(specification)
 
         connection_type = specification["type"]
@@ -131,7 +127,8 @@ class ConnectionFactory(object):
             self._registry[name] = klass
             return klass
 
-    def _url_specification_to_dict(self, specification):
+    @staticmethod
+    def _url_specification_to_dict(specification):
         """Converts a URL-styled specification to a dict-styled
         specification.
 
@@ -145,13 +142,13 @@ class ConnectionFactory(object):
         parts = urlparse(specification, allow_fragments=False)
 
         # Split the netloc into hostname and port if needed
-        host, _, port = parts.netloc.partition(':')
+        host, _, port = parts.netloc.partition(":")
         port = int(port) if port else None
 
         # Parse the parameters into a dict, turning values into integers
         # where applicable
         parameters = parse_qs(parts.query) if parts.query else {}
-        for k, v in iteritems(parameters):
+        for k, v in parameters.items():
             if len(v) > 1:
                 raise ValueError("repeated parameters are not supported")
             v = v[0]
@@ -162,10 +159,7 @@ class ConnectionFactory(object):
             parameters[k] = v
 
         # Return the result in dict-styled format
-        result = {
-            "type": parts.scheme,
-            "parameters": parameters
-        }
+        result = {"type": parts.scheme, "parameters": parameters}
         if host:
             result["host"] = host
         if port is not None:
@@ -179,4 +173,13 @@ class ConnectionFactory(object):
         return self.create(*args, **kwds)
 
 
-create_connection = ConnectionFactory()   #: Singleton connection factory
+create_connection = ConnectionFactory()  #: Singleton connection factory
+
+
+def create_connection_factory(*args, **kwds):
+    """Creates a connection factory function that creates a connection
+    configured in a specific way when invoked with no arguments.
+
+    This is essentially a deferred call to `create_connection()`
+    """
+    return partial(create_connection, *args, **kwds)

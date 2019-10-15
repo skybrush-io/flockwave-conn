@@ -2,19 +2,9 @@ __all__ = ("ConnectionError", "UnknownConnectionTypeError")
 
 
 class ConnectionError(RuntimeError):
-    """Exception thrown during a connection attempt.
+    """Base class for connection-related errors."""
 
-    Not thrown by Connection_ subclasses but you may throw one yourself.
-    """
-
-    def __init__(self, connection, message=None):
-        """Constructor.
-
-        Parameters:
-            connection (Connection): the connection that failed to connect
-        """
-        super(ConnectionError, self).__init__(message or "Connection failed")
-        self.connection = connection
+    pass
 
 
 class UnknownConnectionTypeError(RuntimeError):
