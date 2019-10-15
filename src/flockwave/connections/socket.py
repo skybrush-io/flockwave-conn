@@ -17,7 +17,7 @@ from .stream import StreamConnectionBase
 from .types import IPAddressAndPort
 
 from flockwave.networking import (
-    create_async_socket,
+    create_socket,
     find_interfaces_in_network,
     get_address_of_network_interface,
     get_broadcast_address_of_network_interface,
@@ -163,7 +163,7 @@ class UDPSocketConnection(
         """Creates a new non-blocking reusable UDP socket that is not bound
         anywhere yet.
         """
-        sock = create_async_socket(SOCK_DGRAM)
+        sock = create_socket(SOCK_DGRAM)
         await self._bind_socket(sock)
         return sock
 
