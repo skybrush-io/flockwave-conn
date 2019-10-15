@@ -9,10 +9,10 @@ verify_ssl = true
 blinker = "*"
 trio = "*"
 trio-util = "*"
-attr = "*"
 mido = "*"
 pyserial = "*"
 python-rtmidi = "*"
+attrs = "*"
 
 [requires]
 python_version = "3.7"

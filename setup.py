@@ -4,7 +4,7 @@ from glob import glob
 from os.path import basename, splitext
 from setuptools import setup, find_packages
 
-requires = ["attr>=19.3.0", "blinker>=1.4", "trio>=0.12.1", "trio_util>=0.1.0"]
+requires = ["attrs>=19.3.0", "blinker>=1.4", "trio>=0.12.1", "trio_util>=0.1.0"]
 
 __version__ = None
 exec(open("src/flockwave/connections/version.py").read())
