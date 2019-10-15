@@ -16,7 +16,7 @@ from .factory import create_connection
 from .stream import StreamConnectionBase
 from .types import IPAddressAndPort
 
-from flockwave.server.networking import (
+from flockwave.networking import (
     create_async_socket,
     find_interfaces_in_network,
     get_address_of_network_interface,
