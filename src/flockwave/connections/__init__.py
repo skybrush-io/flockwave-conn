@@ -9,5 +9,10 @@ disconnecting. Connection instances send signals when their state changes.
 from .base import Connection, ConnectionBase, ConnectionState
 from .factory import ConnectionFactory, create_connection
 
-__all__ = ("Connection", "ConnectionBase", "ConnectionFactory",
-           "ConnectionState", "create_connection")
+__all__ = (
+    "Connection",
+    "ConnectionBase",
+    "ConnectionFactory",
+    "ConnectionState",
+    "create_connection",
+)
