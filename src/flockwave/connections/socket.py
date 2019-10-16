@@ -26,8 +26,9 @@ from flockwave.networking import (
 __all__ = (
     "BroadcastUDPSocketConnection",
     "MulticastUDPSocketConnection",
-    "UDPSocketConnection",
     "TCPStreamConnection",
+    "UDPSocketConnection",
+    "UnixDomainSocketConnection",
 )
 
 
@@ -367,27 +368,3 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
 
         self._address = (interfaces[0][1], self._address[1])
         return await super()._bind_socket(sock)
-
-
-async def test_udp():
-    sender = UDPSocketConnection("127.0.0.1")
-    receiver = UDPSocketConnection("127.0.0.1")
-
-    try:
-        await sender.open()
-        await receiver.open()
-
-        assert await sender.write(b"helo", receiver) == 4
-        data, address = await receiver.read()
-        assert data == b"helo"
-        assert address == sender.address
-    finally:
-        await sender.close()
-        await receiver.close()
-
-
-if __name__ == "__main__":
-    import sys
-    import trio
-
-    sys.exit(trio.run(test_udp))
