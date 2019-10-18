@@ -389,7 +389,7 @@ class UnixDomainSocketConnection(StreamConnectionBase):
         Parameters:
             path: the path to connect to
         """
-        StreamConnectionBase.__init__(self)
+        super().__init__()
         self._path = path
 
     async def _create_stream(self):
