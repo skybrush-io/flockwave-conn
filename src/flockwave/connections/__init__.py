@@ -42,6 +42,7 @@ __all__ = (
     "ConnectionSupervisor",
     "ConnectionState",
     "ConnectionTask",
+    "DummyConnection",
     "FileConnection",
     "IPAddressAndPort",
     "MulticastUDPSocketConnection",
