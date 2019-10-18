@@ -6,8 +6,17 @@ import struct
 
 from abc import abstractmethod
 from ipaddress import ip_address, ip_network, IPv4Network, IPv6Network
-from trio import open_tcp_stream, to_thread
-from trio.socket import inet_aton, IPPROTO_IP, IP_ADD_MEMBERSHIP, SOCK_DGRAM, SocketType
+from trio import open_tcp_stream, to_thread, SocketStream
+from trio.socket import (
+    inet_aton,
+    socket,
+    AF_UNIX,
+    IPPROTO_IP,
+    IP_ADD_MEMBERSHIP,
+    SOCK_DGRAM,
+    SOCK_STREAM,
+    SocketType,
+)
 from typing import Optional, Tuple, Union
 
 from .base import ConnectionBase, ReadableConnection, WritableConnection
@@ -368,3 +377,27 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
 
         self._address = (interfaces[0][1], self._address[1])
         return await super()._bind_socket(sock)
+
+
+@create_connection.register("unix")
+class UnixDomainSocketConnection(StreamConnectionBase):
+    """Connection object that wraps a Trio-based Unix domain socket stream."""
+
+    def __init__(self, path: str, **kwds):
+        """Constructor.
+
+        Parameters:
+            path: the path to connect to
+        """
+        StreamConnectionBase.__init__(self)
+        self._path = path
+
+    async def _create_stream(self):
+        sock = socket(AF_UNIX, SOCK_STREAM)
+        await sock.connect(self._path)
+        return SocketStream(sock)
+
+    @property
+    def path(self) -> str:
+        """Returns the path of the socket."""
+        return self._path

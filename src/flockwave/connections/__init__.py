@@ -16,9 +16,11 @@ from .base import (
 from .factory import ConnectionFactory, create_connection, create_connection_factory
 from .file import FileConnection
 from .serial import SerialPortConnection
+from .servers import open_unix_listeners, serve_unix
 from .socket import (
     TCPStreamConnection,
     UDPSocketConnection,
+    UnixDomainSocketConnection,
     MulticastUDPSocketConnection,
     BroadcastUDPSocketConnection,
 )
@@ -47,10 +49,13 @@ __all__ = (
     "StreamConnection",
     "StreamConnectionBase",
     "SupervisionPolicy",
-    "UDPSocketConnection",
     "TCPStreamConnection",
+    "UDPSocketConnection",
+    "UnixDomainSocketConnection",
     "WritableConnection",
     "create_connection",
     "create_connection_factory",
+    "open_unix_listeners",
+    "serve_unix",
     "supervise",
 )
