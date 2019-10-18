@@ -140,6 +140,10 @@ class ConnectionFactory(object):
         """
         # Break up the URL into parts
         parts = urlparse(specification, allow_fragments=False)
+        if not parts.scheme:
+            # No ":" in specification; let's assume that the entire string is
+            # a URL scheme and that we have no parameters
+            return {"type": specification}
 
         # Split the netloc into hostname and port if needed
         host, _, port = parts.netloc.partition(":")

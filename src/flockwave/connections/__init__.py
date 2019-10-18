@@ -13,6 +13,7 @@ from .base import (
     ReadableConnection,
     WritableConnection,
 )
+from .dummy import DummyConnection
 from .factory import ConnectionFactory, create_connection, create_connection_factory
 from .file import FileConnection
 from .serial import SerialPortConnection
