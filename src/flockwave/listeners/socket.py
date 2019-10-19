@@ -1,12 +1,14 @@
 from trio import serve_tcp
 
 from .base import TrioListenerBase
+from .factory import create_listener
 
 from ..connections.servers import serve_unix
 
 __all__ = ("TCPSocketListener", "UnixDomainSocketListener")
 
 
+@create_listener.register("tcp")
 class TCPSocketListener(TrioListenerBase):
     """Listener that listens for incoming connections on a given TCP host
     and port.
@@ -31,6 +33,7 @@ class TCPSocketListener(TrioListenerBase):
         await serve_tcp(handler, self._port, host=self._host, task_status=task_status)
 
 
+@create_listener.register("unix")
 class UnixDomainSocketListener(TrioListenerBase):
     """Listener that listens for incoming connections on a given Unix domain
     socket.

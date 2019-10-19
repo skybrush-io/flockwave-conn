@@ -14,7 +14,7 @@ from .base import (
     WritableConnection,
 )
 from .dummy import DummyConnection
-from .factory import ConnectionFactory, create_connection, create_connection_factory
+from .factory import create_connection, create_connection_factory
 from .file import FileConnection
 from .serial import SerialPortConnection
 from .servers import open_unix_listeners, serve_unix
@@ -38,7 +38,6 @@ __all__ = (
     "BroadcastUDPSocketConnection",
     "Connection",
     "ConnectionBase",
-    "ConnectionFactory",
     "ConnectionSupervisor",
     "ConnectionState",
     "ConnectionTask",
