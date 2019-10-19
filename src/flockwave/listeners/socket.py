@@ -50,5 +50,13 @@ class UnixDomainSocketListener(TrioListenerBase):
         self._path = path
         self._mode = mode
 
+    @property
+    def mode(self) -> int:
+        return self._mode
+
+    @property
+    def path(self) -> str:
+        return self._path
+
     async def _run(self, handler, task_status) -> None:
         await serve_unix(handler, self._path, mode=self._mode, task_status=task_status)

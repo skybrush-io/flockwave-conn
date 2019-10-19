@@ -266,7 +266,7 @@ class TrioListenerBase(ListenerBase):
     def __init__(
         self,
         *,
-        handler: Optional[TrioConnectionHandler],
+        handler: Optional[TrioConnectionHandler] = None,
         nursery: Optional[Nursery] = None
     ):
         """Constructor.
