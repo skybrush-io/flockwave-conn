@@ -12,10 +12,10 @@ class DummyConnection(ConnectionBase):
     without performing any IO.
     """
 
-    async def _open(self):
+    async def _open(self) -> None:
         # Force a Trio checkpoint
         await sleep(0)
 
-    async def _close(self):
+    async def _close(self) -> None:
         # Force a Trio checkpoint
         await sleep(0)

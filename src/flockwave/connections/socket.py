@@ -124,16 +124,12 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
 class TCPStreamConnection(StreamConnectionBase, InternetAddressMixin):
     """Connection object that wraps a Trio TCP stream."""
 
-    def __init__(self, host="", port=0, **kwds):
+    def __init__(self, host: str, port: int, **kwds):
         """Constructor.
 
         Parameters:
-            host (Optional[str]): the IP address or hostname that the socket
-                will bind (or connect) to. The default value means that the
-                socket will bind to all IP addresses of the local machine.
-            port (int): the port number that the socket will bind (or
-                connect) to. Zero means that the socket will choose a random
-                ephemeral port number on its own.
+            host: the IP address or hostname that the socket will connect to.
+            port: the port number that the socket will connect to.
         """
         StreamConnectionBase.__init__(self)
         InternetAddressMixin.__init__(self)

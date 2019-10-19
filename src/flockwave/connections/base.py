@@ -28,7 +28,7 @@ class ConnectionState(Enum):
     DISCONNECTING = "DISCONNECTING"
 
     @property
-    def is_transitioning(self):
+    def is_transitioning(self) -> bool:
         return self in (ConnectionState.CONNECTING, ConnectionState.DISCONNECTING)
 
 
@@ -45,55 +45,54 @@ class Connection(metaclass=ABCMeta):
         Signal sent whenever the state of the connection changes.
 
         Parameters:
-            new_state (str): the new state
-            old_state (str): the old state
+            new_state: the new state
+            old_state: the old state
         """
     )
 
     @abstractmethod
-    async def open(self):
+    async def open(self) -> None:
         """Opens the connection. No-op if the connection is open already."""
         raise NotImplementedError
 
     @abstractmethod
-    async def close(self):
+    async def close(self) -> None:
         """Closes the connection. No-op if the connection is closed already."""
         raise NotImplementedError
 
     @property
-    def is_disconnected(self):
+    def is_disconnected(self) -> bool:
         """Returns whether the connection is disconnected (and not connecting and
         not disconnecting)."""
         return self.state is ConnectionState.DISCONNECTED
 
     @property
-    def is_connected(self):
+    def is_connected(self) -> bool:
         """Returns whether the connection is connected."""
         return self.state is ConnectionState.CONNECTED
 
     @property
-    def is_transitioning(self):
+    def is_transitioning(self) -> bool:
         """Returns whether connection is currently transitioning."""
         return self.state.is_transitioning
 
     @abstractproperty
-    def state(self):
+    def state(self) -> ConnectionState:
         """Returns the state of the connection; one of the constants from
         the ``ConnectionState`` enum.
         """
         raise NotImplementedError
 
     @abstractmethod
-    async def wait_until_connected(self):
-        """Blocks the current green thread until the connection becomes
-        connected. Returns immediately if the connection is already
-        connected.
+    async def wait_until_connected(self) -> None:
+        """Blocks the current task until the connection becomes connected.
+        Returns immediately if the connection is already connected.
         """
         raise NotImplementedError
 
     @abstractmethod
-    async def wait_until_disconnected(self):
-        """Blocks the execution until the connection becomes disconnected.
+    async def wait_until_disconnected(self) -> None:
+        """Blocks the current task until the connection becomes disconnected.
         Returns immediately if the connection is already disconnected.
         """
         raise NotImplementedError

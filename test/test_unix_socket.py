@@ -1,9 +1,11 @@
 import os
 
-from flockwave.connections import UnixDomainSocketConnection, serve_unix
 from pytest import raises
-from trio import CancelScope, Event, move_on_after
+from trio import move_on_after
 from trio.socket import AF_UNIX, SOCK_STREAM, socket
+
+from flockwave.connections import UnixDomainSocketConnection, serve_unix
+from flockwave.listeners import UnixDomainSocketListener
 
 
 def get_socket_path(tmp_path_factory):
@@ -21,12 +23,12 @@ async def echo(stream):
 
 async def test_unix_socket_connection_echo(nursery, tmp_path_factory, autojump_clock):
     socket_path = get_socket_path(tmp_path_factory)
+
+    listener = UnixDomainSocketListener(socket_path, handler=echo, nursery=nursery)
     sender = UnixDomainSocketConnection(socket_path)
 
     with move_on_after(10):
-        await nursery.start(serve_unix, echo, socket_path)
-
-        async with sender:
+        async with listener, sender:
             await sender.write(b"helo")
             data = await sender.read()
             assert data == b"helo"
@@ -49,23 +51,14 @@ async def test_unix_socket_cleanup_on_start(nursery, tmp_path_factory):
     await sock.bind(socket_path)
 
     sender = UnixDomainSocketConnection(socket_path)
-    scope = CancelScope()
-    exited = Event()
-
-    async def serve_unix_with_cancellation(task_status):
-        with scope:
-            await serve_unix(echo, socket_path, task_status=task_status)
-        exited.set()
+    listener = UnixDomainSocketListener(socket_path, handler=echo, nursery=nursery)
 
     with move_on_after(10):
-        await nursery.start(serve_unix_with_cancellation)
-
-        async with sender:
+        async with listener, sender:
             await sender.write(b"helo")
             data = await sender.read()
             assert data == b"helo"
 
-    scope.cancel()
-    await exited.wait()
+    await listener.close()
 
     assert not os.path.exists(socket_path)
