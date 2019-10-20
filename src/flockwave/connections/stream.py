@@ -4,7 +4,14 @@ from abc import abstractmethod
 from trio.abc import Stream
 from typing import Callable, Optional
 
-from .base import ConnectionBase, ReadableConnection, WritableConnection
+from .base import (
+    ConnectionBase,
+    ConnectionState,
+    ReadableConnection,
+    WritableConnection,
+)
+
+__all__ = ("StreamConnectionBase", "StreamConnection", "StreamWrapperConnection")
 
 
 class StreamConnectionBase(
@@ -83,3 +90,25 @@ class StreamConnection(StreamConnectionBase):
         instance.
         """
         return await self._factory()
+
+
+class StreamWrapperConnection(StreamConnectionBase):
+    """Connection class that wraps a Trio bidirectional byte stream that was
+    already constructed in advance.
+
+    Since the stream already exists, the wrapper connection will be open already
+    when it is constructed. Closing it will invalidate the connection and
+    close the underlying stream. Subsequent attempts to open the stream will
+    throw a RuntimeError_.
+    """
+
+    def __init__(self, stream: Stream):
+        if stream is None:
+            raise ValueError("wrapped stream must not be None")
+
+        super().__init__()
+        self._stream = stream
+        self._set_state(ConnectionState.CONNECTED)
+
+    async def _create_stream(self) -> Stream:
+        raise RuntimeError("stream wrapper can only be opened once")

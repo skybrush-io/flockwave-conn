@@ -25,7 +25,7 @@ from .socket import (
     MulticastUDPSocketConnection,
     BroadcastUDPSocketConnection,
 )
-from .stream import StreamConnection, StreamConnectionBase
+from .stream import StreamConnection, StreamConnectionBase, StreamWrapperConnection
 from .supervision import (
     ConnectionSupervisor,
     ConnectionTask,
@@ -49,6 +49,7 @@ __all__ = (
     "SerialPortConnection",
     "StreamConnection",
     "StreamConnectionBase",
+    "StreamWrapperConnection",
     "SupervisionPolicy",
     "TCPStreamConnection",
     "UDPSocketConnection",
