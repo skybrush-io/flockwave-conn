@@ -56,7 +56,11 @@ class StreamConnectionBase(
                 zero. Optional; if omitted, then the stream object is free to
                 pick a reasonable default.
         """
-        return await self._stream.receive_some(size)
+        data = await self._stream.receive_some(size)
+        if not data:
+            # End of file reached; close the stream.
+            await self.close()
+        return data
 
     async def write(self, data: bytes) -> None:
         """Writes some data to the stream.
