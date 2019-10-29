@@ -4,7 +4,13 @@ from glob import glob
 from os.path import basename, splitext
 from setuptools import setup, find_packages
 
-requires = ["blinker>=1.4", "netifaces>=0.10.9", "trio>=0.12.1", "trio_util>=0.1.0"]
+requires = [
+    "blinker>=1.4",
+    "netifaces>=0.10.9",
+    "trio>=0.12.1",
+    "trio_util>=0.1.0",
+    "flockwave-parsers @ https://git.collmot.com/collmot/flockwave-parsers/archive/1.1.1.tar.gz",
+]
 
 __version__ = None
 exec(open("src/flockwave/connections/version.py").read())

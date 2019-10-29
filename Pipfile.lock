@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8d0b4f3e10328e74e398bed1fd87a6e8208294df3e86774d4f32015e4e689958"
+            "sha256": "bac3edf6545392839bc83c66ed23cd1085057cb2009d3f379d7075e5acafd299"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -36,6 +36,9 @@
             ],
             "index": "pypi",
             "version": "==1.4"
+        },
+        "flockwave-parsers": {
+            "file": "https://git.collmot.com/collmot/flockwave-parsers/archive/1.1.1.tar.gz"
         },
         "idna": {
             "hashes": [
@@ -82,10 +85,10 @@
         },
         "outcome": {
             "hashes": [
-                "sha256:7357af9ba2a08fdff8c742818909c5d146fc1fe75aee4bddadaa4f8ad726d262",
-                "sha256:9d58c05db36a900ce60c6da0167d76e28869f64b338d60fa3a61841cfa54ac71"
+                "sha256:ee46c5ce42780cde85d55a61819d0e6b8cb490f1dbd749ba75ff2629771dcd2d",
+                "sha256:fc7822068ba7dd0fc2532743611e8a73246708d3564e29a39f93d6ab3701b66f"
             ],
-            "version": "==1.0.0"
+            "version": "==1.0.1"
         },
         "pyserial": {
             "hashes": [
@@ -190,10 +193,10 @@
         },
         "outcome": {
             "hashes": [
-                "sha256:7357af9ba2a08fdff8c742818909c5d146fc1fe75aee4bddadaa4f8ad726d262",
-                "sha256:9d58c05db36a900ce60c6da0167d76e28869f64b338d60fa3a61841cfa54ac71"
+                "sha256:ee46c5ce42780cde85d55a61819d0e6b8cb490f1dbd749ba75ff2629771dcd2d",
+                "sha256:fc7822068ba7dd0fc2532743611e8a73246708d3564e29a39f93d6ab3701b66f"
             ],
-            "version": "==1.0.0"
+            "version": "==1.0.1"
         },
         "packaging": {
             "hashes": [
@@ -225,11 +228,11 @@
         },
         "pytest": {
             "hashes": [
-                "sha256:7e4800063ccfc306a53c461442526c5571e1462f61583506ce97e4da6a1d88c8",
-                "sha256:ca563435f4941d0cb34767301c27bc65c510cb82e90b9ecf9cb52dc2c63caaa0"
+                "sha256:27abc3fef618a01bebb1f0d6d303d2816a99aa87a5968ebc32fe971be91eb1e6",
+                "sha256:58cee9e09242937e136dbb3dab466116ba20d6b7828c7620f23947f37eb4dae4"
             ],
             "index": "pypi",
-            "version": "==5.2.1"
+            "version": "==5.2.2"
         },
         "pytest-trio": {
             "hashes": [
