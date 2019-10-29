@@ -9,7 +9,13 @@ from inspect import iscoroutinefunction
 from logging import Logger
 from tinyrpc.dispatch import RPCDispatcher
 from tinyrpc.protocols import RPCProtocol, RPCRequest, RPCResponse
-from trio import EndOfChannel, fail_after, open_memory_channel, open_nursery
+from trio import (
+    CancelScope,
+    EndOfChannel,
+    fail_after,
+    open_memory_channel,
+    open_nursery,
+)
 from trio.abc import Channel
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
@@ -173,6 +179,10 @@ async def serve_rpc_requests(
     # Store the default timeout
     default_timeout = timeout
 
+    # Create a cancellation scope so we can cancel the tasks spawned by the
+    # user if the channel closes
+    cancel_scope = CancelScope()
+
     async def handle_single_inbound_message(message) -> None:
         """Task that handles a single inbound message."""
 
@@ -216,6 +226,7 @@ async def serve_rpc_requests(
         async with out_queue_tx:
             async for message in channel:
                 await handle_single_inbound_message(message)
+        cancel_scope.cancel()
 
     async def handle_outbound_messages() -> None:
         """Task that handles the sending of outbound messages on the
@@ -268,4 +279,5 @@ async def serve_rpc_requests(
     async with open_nursery() as nursery:
         nursery.start_soon(handle_inbound_messages)
         nursery.start_soon(handle_outbound_messages)
-        yield send_request
+        with cancel_scope:
+            yield send_request
