@@ -5,32 +5,22 @@ encodes them and writes them to a WritableConnection_.
 
 from collections import deque
 from contextlib import asynccontextmanager
-from inspect import iscoroutinefunction
 from logging import Logger
 from tinyrpc.dispatch import RPCDispatcher
-from tinyrpc.protocols import RPCProtocol, RPCRequest, RPCResponse
-from trio import (
-    CancelScope,
-    EndOfChannel,
-    fail_after,
-    open_memory_channel,
-    open_nursery,
-)
+from tinyrpc.protocols import RPCProtocol
+from trio import EndOfChannel
 from trio.abc import Channel
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
+from typing import Optional, Union
 
 from flockwave.encoders.rpc import create_rpc_encoder
 from flockwave.parsers.rpc import create_rpc_parser
 
 from ..connections import Connection
 
-from .types import Encoder, MessageType, Parser, RawType
-from .utils import Future
+from .rpc import serve_rpc_requests
+from .types import Encoder, MessageType, Parser, RawType, RPCRequestHandler
 
 __all__ = ("MessageChannel",)
-
-
-RPCRequestHandler = Callable[[RPCRequest], Union[RPCResponse, Awaitable[RPCResponse]]]
 
 
 class MessageChannel(Channel[MessageType]):
@@ -138,146 +128,3 @@ class MessageChannel(Channel[MessageType]):
         if not data:
             raise EndOfChannel()
         self._pending.extend(self._parser(data))
-
-
-@asynccontextmanager
-async def serve_rpc_requests(
-    channel: MessageChannel,
-    *,
-    create_request: Callable[[str, List[Any], Dict[str, Any]], RPCRequest],
-    handler: Union[RPCRequestHandler, RPCDispatcher],
-    log: Optional[Logger] = None,
-    timeout: float = 5,
-):
-    """Sets up a context that allows us to use the given connection for
-    remote procedure calls (RPC) with the given protocol.
-
-    Parameters:
-        channel: the channel to use
-        create_request: function that can be called with an RPC method name,
-            the list of positional arguments and the dictionary holding
-            the keyword arguments, and that will return an RPC request
-            object that can be sent over the channel
-        handler: handler function or method dispatcher that we will invoke
-            when we receive a request from our peer
-        log: optional logger to use for logging error messages and warnings
-        timeout: default timeout for requests, in seconds
-    """
-    handler_is_async = iscoroutinefunction(handler)
-
-    # If we received an RPCDispatcher as a handler, use its dispatch method
-    if isinstance(handler, RPCDispatcher):
-        handler = handler.dispatch
-
-    # Create a queue in which one can post outbound messages
-    out_queue_tx, out_queue_rx = open_memory_channel(0)
-
-    # Create a map that maps pending requests that we have sent to the
-    # corresponding events that we need to set when the response arrives
-    pending_requests = {}
-
-    # Store the default timeout
-    default_timeout = timeout
-
-    # Create a cancellation scope so we can cancel the tasks spawned by the
-    # user if the channel closes
-    cancel_scope = CancelScope()
-
-    async def handle_single_inbound_message(message) -> None:
-        """Task that handles a single inbound message."""
-
-        if isinstance(message, RPCRequest):
-            # TODO(ntamas): send this to a worker?
-            if handler_is_async:
-                response = await handler(message)
-            else:
-                response = handler(message)
-            if response and not message.one_way:
-                await out_queue_tx.send(response)
-        elif isinstance(message, RPCResponse):
-            request_id = message.unique_id
-            future = pending_requests.get(request_id)
-            if future:
-                if not future.done():
-                    if hasattr(message, "error"):
-                        future.set_exception(message.error)
-                    else:
-                        future.set_result(message.result)
-                else:
-                    if log:
-                        log.warn(
-                            "Duplicate response received for request {!r}".format(
-                                request_id
-                            )
-                        )
-            else:
-                if log:
-                    log.warn(
-                        "Stale response received for request {!r}".format(request_id)
-                    )
-        else:
-            if log:
-                log.warn("Received unknown message type: {!r}".format(type(message)))
-
-    async def handle_inbound_messages() -> None:
-        """Task that handles incoming messages and forwards RPC requests to
-        the dispatcher function.
-        """
-        async with out_queue_tx:
-            async for message in channel:
-                await handle_single_inbound_message(message)
-        cancel_scope.cancel()
-
-    async def handle_outbound_messages() -> None:
-        """Task that handles the sending of outbound messages on the
-        connection.
-        """
-        async with out_queue_rx:
-            async for message in out_queue_rx:
-                await channel.send(message)
-
-    async def send_request(
-        method: str, *args, one_way=False, timeout=None, **kwds
-    ) -> RPCResponse:
-        """Sends an RPC request with the given method. Additional positional
-        and keyword arguments are forwarded intact to the remote side.
-
-        Parameters:
-            method: the method to send
-            one_way: whether the request is one-way (i.e. we are not interested
-                in a response)
-            timeout: number of seconds to wait for the response; `None` means to
-                use the default timeout
-
-        Returns:
-            the response that we have received
-
-        Raises:
-            TooSlowError: if the server did not respond in time
-        """
-        timeout = timeout if timeout is not None else default_timeout
-        request = create_request(method, args, kwds)
-        needs_response = not one_way and request.unique_id is not None
-        request_id = request.unique_id
-
-        if needs_response:
-            pending_requests[request_id] = future = Future()
-
-        await out_queue_tx.send(request)
-
-        if not needs_response:
-            return None
-
-        try:
-            with fail_after(timeout):
-                return await future.wait()
-        finally:
-            pending_requests.pop(request_id, None)
-
-    # Start the tasks and yield the sending half of the outbound queue so the
-    # caller can send messages
-    async with open_nursery() as nursery:
-        nursery.start_soon(handle_inbound_messages)
-        nursery.start_soon(handle_outbound_messages)
-        with cancel_scope:
-            yield send_request
