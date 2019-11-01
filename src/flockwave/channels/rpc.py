@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from flockwave.concurrency import FutureMap
 from inspect import iscoroutinefunction
 from logging import Logger
 from tinyrpc.dispatch import RPCDispatcher
@@ -6,7 +7,6 @@ from tinyrpc.protocols import RPCRequest, RPCResponse
 from trio import CancelScope, fail_after, open_memory_channel, open_nursery
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from .utils import Future
 from .types import RPCRequestHandler
 
 __all__ = ("serve_rpc_requests",)
@@ -118,8 +118,8 @@ async def serve_rpc_requests(
     out_queue_tx, out_queue_rx = open_memory_channel(0)
 
     # Create a map that maps pending requests that we have sent to the
-    # corresponding events that we need to set when the response arrives
-    pending_requests = {}
+    # corresponding futures that we need to resolve when the response arrives
+    pending_requests = FutureMap()
 
     # Store the default timeout
     default_timeout = timeout
@@ -206,18 +206,16 @@ async def serve_rpc_requests(
         request_id = request.unique_id
 
         if needs_response:
-            pending_requests[request_id] = future = Future()
+            future_context = pending_requests.new(request_id)
 
         await out_queue_tx.send(request)
 
         if not needs_response:
             return None
 
-        try:
+        async with future_context as future:
             with fail_after(timeout):
                 return await future.wait()
-        finally:
-            pending_requests.pop(request_id, None)
 
     # Start the tasks and yield the sending half of the outbound queue so the
     # caller can send messages
