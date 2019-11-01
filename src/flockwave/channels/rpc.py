@@ -201,7 +201,7 @@ async def serve_rpc_requests(
             TooSlowError: if the server did not respond in time
         """
         timeout = timeout if timeout is not None else default_timeout
-        request = create_request(method, args, kwds)
+        request = create_request(method, args, kwds, one_way=one_way)
         needs_response = not one_way and request.unique_id is not None
         request_id = request.unique_id
 
