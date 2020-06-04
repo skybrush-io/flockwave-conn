@@ -10,7 +10,6 @@ from trio import open_tcp_stream, to_thread, SocketStream
 from trio.socket import (
     inet_aton,
     socket,
-    AF_UNIX,
     IPPROTO_IP,
     IP_ADD_MEMBERSHIP,
     SOCK_DGRAM,
@@ -389,6 +388,11 @@ class UnixDomainSocketConnection(StreamConnectionBase):
         self._path = path
 
     async def _create_stream(self):
+        try:
+            from trio.socket import AF_UNIX
+        except ImportError:
+            raise RuntimeError("UNIX domain sockets are not supported on this platform")
+
         sock = socket(AF_UNIX, SOCK_STREAM)
         await sock.connect(self._path)
         return SocketStream(sock)

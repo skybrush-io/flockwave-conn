@@ -9,8 +9,8 @@ pytest-trio = "*"
 
 [packages]
 blinker = "*"
-trio = "*"
-trio-util = "*"
+trio = ">=0.15.1"
+trio-util = ">=0.1.1"
 mido = "*"
 pyserial = "*"
 python-rtmidi = "*"

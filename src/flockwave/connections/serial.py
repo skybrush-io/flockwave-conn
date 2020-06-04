@@ -4,7 +4,7 @@ from __future__ import absolute_import, print_function
 
 from os import dup
 from trio.abc import Stream
-from trio.hazmat import FdStream, wait_readable
+from trio.lowlevel import wait_readable
 from typing import Optional
 
 from .factory import create_connection
@@ -43,6 +43,11 @@ class SerialPortStream(Stream):
             device: the `pySerial` serial port object to manage in this stream.
                 It must already be open.
         """
+        try:
+            from trio.lowlevel import FdStream
+        except ImportError:
+            raise RuntimeError("SerialPortStream is not supported on Windows")
+
         self._device = device
         self._device.nonblocking()
         self._fd_stream = FdStream(dup(self._device.fileno()))

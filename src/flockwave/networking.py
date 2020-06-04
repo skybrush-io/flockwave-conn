@@ -30,7 +30,10 @@ def create_socket(socket_type) -> trio.socket.socket:
         trio.socket.socket: the newly created socket
     """
     sock = trio.socket.socket(trio.socket.AF_INET, socket_type)
-    sock.setsockopt(trio.socket.SOL_SOCKET, trio.socket.SO_REUSEADDR, 1)
+    if hasattr(trio.socket, "SO_REUSEADDR"):
+        # SO_REUSEADDR does not exist on Windows, but we don't really need
+        # it on Windows either
+        sock.setsockopt(trio.socket.SOL_SOCKET, trio.socket.SO_REUSEADDR, 1)
     if hasattr(trio.socket, "SO_REUSEPORT"):
         # Needed on Mac OS X to work around an issue with an earlier
         # instance of the flockctrl process somehow leaving a socket

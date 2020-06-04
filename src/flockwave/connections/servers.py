@@ -16,7 +16,7 @@ from trio import (
     serve_tcp,
     to_thread,
 )
-from socket import AF_UNIX, socket
+from socket import socket
 from trio.socket import from_stdlib_socket
 from typing import Awaitable, Callable, Optional
 from uuid import uuid4
@@ -43,6 +43,11 @@ class UnixSocketListener(SocketListener):
 
     @staticmethod
     def _create(path: str, mode: int, backlog: int):
+        try:
+            from socket import AF_UNIX
+        except ImportError:
+            raise RuntimError("UNIX domain sockets are not supported on this platform")
+
         if os.path.exists(path) and not stat.S_ISSOCK(os.stat(path).st_mode):
             raise FileExistsError(f"Existing file is not a socket: {path}")
 
