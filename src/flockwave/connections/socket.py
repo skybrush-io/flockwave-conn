@@ -12,6 +12,8 @@ from trio.socket import (
     socket,
     IPPROTO_IP,
     IP_ADD_MEMBERSHIP,
+    IP_MULTICAST_IF,
+    IP_MULTICAST_TTL,
     SOCK_DGRAM,
     SOCK_STREAM,
     SOL_SOCKET,
@@ -29,8 +31,8 @@ from .types import IPAddressAndPort
 from flockwave.networking import (
     create_socket,
     find_interfaces_in_network,
-    get_address_of_network_interface,
     get_broadcast_address_of_network_interface,
+    resolve_network_interface_or_address,
 )
 
 __all__ = (
@@ -157,7 +159,9 @@ class UDPSocketConnection(
         host: Optional[str] = "",
         port: int = 0,
         allow_broadcast: bool = False,
-        **kwds
+        multicast_ttl: Optional[int] = None,
+        multicast_interface: Optional[str] = None,
+        **kwds,
     ):
         """Constructor.
 
@@ -170,10 +174,19 @@ class UDPSocketConnection(
                 own.
             allow_broadcast: whether to allow the socket to send broadcast
                 packets.
+            multicast_ttl: the TTL (time-to-live) value of multicast packets
+                sent from this socket. ``None`` means not to configure the
+                TTL value of outbound packets.
+            multicast_interface: the name or IP address of the network interface
+                on which multicast packets should be sent from this socket.
+                ``None`` means not to configure the multicast interface for
+                this socket.
         """
         super().__init__()
         self._address = (host or "", port or 0)
         self._allow_broadcast = bool(int(allow_broadcast))
+        self._multicast_interface = multicast_interface
+        self._multicast_ttl = int(multicast_ttl) if multicast_ttl is not None else None
 
     async def _create_and_open_socket(self):
         """Creates a new non-blocking reusable UDP socket that is not bound
@@ -182,6 +195,13 @@ class UDPSocketConnection(
         sock = create_socket(SOCK_DGRAM)
         if self._allow_broadcast:
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        if self._multicast_ttl is not None:
+            sock.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, self._multicast_ttl)
+        if self._multicast_interface is not None:
+            multicast_interface = await to_thread.run_sync(
+                resolve_network_interface_or_address, self._multicast_interface
+            )
+            sock.setsockopt(IPPROTO_IP, IP_MULTICAST_IF, inet_aton(multicast_interface))
         await self._bind_socket(sock)
         return sock
 
@@ -313,35 +333,18 @@ class MulticastUDPSocketConnection(UDPSocketConnection):
         """
         sock = await super()._create_and_open_socket()
 
-        address = await to_thread.run_sync(self._resolve_interface, self._interface)
+        if self._interface:
+            address = await to_thread.run_sync(
+                resolve_network_interface_or_address, self._interface
+            )
+        else:
+            address = "0.0.0.0"
 
         host, _ = self._address
         req = struct.pack("4s4s", inet_aton(host), inet_aton(address))
         sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, req)
 
         return sock
-
-    @staticmethod
-    def _resolve_interface(value: Optional[str]) -> str:
-        """Takes the name of a network interface or an IP address as input,
-        and returns the resolved and validated IP address.
-
-        This process might call `netifaces.ifaddresses()` et al in the
-        background, which could potentially be blocking. It is advised to run
-        this function in a separate worker thread.
-
-        Parameters:
-            value: the IP address to validate, or the interface whose IP address
-                we are about to retrieve. `None` means that we are binding to
-                all interfaces.
-
-        Returns:
-            the IPv4 address of the interface.
-        """
-        try:
-            return str(ip_address(value)) if value else "0.0.0.0"
-        except ValueError:
-            return str(get_address_of_network_interface(value))
 
 
 @create_connection.register("udp-subnet")
@@ -358,7 +361,7 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
         self,
         network: Optional[Union[IPv4Network, IPv6Network, str]] = None,
         port: int = 0,
-        **kwds
+        **kwds,
     ):
         """Constructor.
 

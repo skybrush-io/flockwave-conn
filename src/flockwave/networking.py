@@ -2,7 +2,7 @@
 
 from ipaddress import ip_address, ip_network, IPv6Network
 from netifaces import AF_INET, AF_INET6, gateways, ifaddresses, interfaces
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 import trio.socket
 
@@ -13,6 +13,7 @@ __all__ = (
     "get_address_of_network_interface",
     "get_all_ipv4_addresses",
     "get_socket_address",
+    "resolve_network_interface_or_address",
 )
 
 
@@ -231,3 +232,24 @@ def get_socket_address(sock, format="{host}:{port}", in_subnet_of=None):
                         break
 
     return host, port
+
+
+def resolve_network_interface_or_address(value: Optional[str]) -> str:
+    """Takes the name of a network interface or an IP address as input,
+    and returns the resolved and validated IP address.
+
+    This process might call `netifaces.ifaddresses()` et al in the
+    background, which could potentially be blocking. It is advised to run
+    this function in a separate worker thread.
+
+    Parameters:
+        value: the IP address to validate, or the interface whose IP address
+            we are about to retrieve.
+
+    Returns:
+        the IPv4 address of the interface.
+    """
+    try:
+        return str(ip_address(value))
+    except ValueError:
+        return str(get_address_of_network_interface(value))
