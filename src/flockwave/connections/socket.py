@@ -14,6 +14,8 @@ from trio.socket import (
     IP_ADD_MEMBERSHIP,
     SOCK_DGRAM,
     SOCK_STREAM,
+    SOL_SOCKET,
+    SO_BROADCAST,
     SocketType,
 )
 from typing import Optional, Tuple, Union
@@ -150,7 +152,13 @@ class UDPSocketConnection(
 ):
     """Connection object that uses a UDP socket."""
 
-    def __init__(self, host: Optional[str] = "", port: int = 0, **kwds):
+    def __init__(
+        self,
+        host: Optional[str] = "",
+        port: int = 0,
+        allow_broadcast: bool = False,
+        **kwds
+    ):
         """Constructor.
 
         Parameters:
@@ -160,15 +168,20 @@ class UDPSocketConnection(
             port: the port number that the socket will bind to. Zero means that
                 the socket will choose a random ephemeral port number on its
                 own.
+            allow_broadcast: whether to allow the socket to send broadcast
+                packets.
         """
         super().__init__()
         self._address = (host or "", port or 0)
+        self._allow_broadcast = bool(int(allow_broadcast))
 
     async def _create_and_open_socket(self):
         """Creates a new non-blocking reusable UDP socket that is not bound
         anywhere yet.
         """
         sock = create_socket(SOCK_DGRAM)
+        if self._allow_broadcast:
+            sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         await self._bind_socket(sock)
         return sock
 
@@ -218,8 +231,12 @@ class UDPSocketConnection(
 @create_connection.register("udp-broadcast")
 class BroadcastUDPSocketConnection(UDPSocketConnection):
     """Connection object that binds to the broadcast address of a given
-    subnet or a given interface.
+    subnet or a given interface and listens for incoming packets from there.
+
+    The connection cannot be used for sending packets.
     """
+
+    can_send = False
 
     def __init__(self, interface=None, port=0, **kwds):
         """Constructor.
@@ -254,7 +271,12 @@ class BroadcastUDPSocketConnection(UDPSocketConnection):
 
 @create_connection.register("udp-multicast")
 class MulticastUDPSocketConnection(UDPSocketConnection):
-    """Connection object that uses a multicast UDP socket."""
+    """Connection object that uses a multicast UDP socket.
+
+    The connection cannot be used for sending packets.
+    """
+
+    can_send = False
 
     def __init__(self, group=None, port=0, interface=None, **kwds):
         """Constructor.
@@ -358,7 +380,7 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
             if network is None:
                 raise ValueError("either 'network' or 'path' must be given")
 
-        super().__init__(port=port)
+        super().__init__(port=port, **kwds)
 
         self._network = ip_network(network)
 
