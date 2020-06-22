@@ -46,7 +46,7 @@ class UnixSocketListener(SocketListener):
         try:
             from socket import AF_UNIX
         except ImportError:
-            raise RuntimError("UNIX domain sockets are not supported on this platform")
+            raise RuntimeError("UNIX domain sockets are not supported on this platform")
 
         if os.path.exists(path) and not stat.S_ISSOCK(os.stat(path).st_mode):
             raise FileExistsError(f"Existing file is not a socket: {path}")
