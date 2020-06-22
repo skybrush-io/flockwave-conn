@@ -6,6 +6,10 @@ import os
 import stat
 
 from math import inf
+from socket import socket, AF_UNIX
+from typing import Awaitable, Callable, Optional
+from uuid import uuid4
+
 from trio import (
     Nursery,
     SocketListener,
@@ -16,10 +20,7 @@ from trio import (
     serve_tcp,
     to_thread,
 )
-from socket import socket
 from trio.socket import from_stdlib_socket
-from typing import Awaitable, Callable, Optional
-from uuid import uuid4
 
 __all__ = ("open_unix_listeners", "serve_tcp", "serve_unix")
 
