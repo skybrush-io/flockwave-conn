@@ -186,6 +186,12 @@ class Factory:
             self._registry[name] = klass
             return klass
 
+    def unregister(self, name: str) -> None:
+        """Unregisters the class identified with the given name from this
+        factory.
+        """
+        del self._registry[name]
+
     def __call__(self, *args, **kwds):
         """Forwards the invocation to the `create()`_ method."""
         return self.create(*args, **kwds)
