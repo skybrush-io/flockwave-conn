@@ -43,8 +43,11 @@ class Factory:
             # a URL scheme and that we have no parameters
             return {"type": specification}
 
-        # Split the netloc into hostname and port if needed
-        host, _, port = parts.netloc.partition(":")
+        # Split the netloc into authentication info and the rest if needed
+        auth, _, host_and_port = parts.netloc.rpartition("@")
+
+        # Split the host-and-port into hostname and port if needed
+        host, _, port = host_and_port.partition(":")
         port = int(port) if port else None
 
         # Parse the parameters into a dict, turning values into integers
@@ -68,6 +71,12 @@ class Factory:
             result["port"] = port
         if parts.path:
             result["path"] = parts.path
+        if auth:
+            username, sep, password = auth.partition(":")
+            result["username"] = username
+            if sep:
+                result["password"] = password
+
         return result
 
     def create(self, specification: Union[str, Dict[str, Any]]):
