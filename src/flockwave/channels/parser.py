@@ -21,7 +21,7 @@ class ParserChannel(ReceiveChannel[MessageType]):
         if iscoroutinefunction(getattr(reader, "read", None)):
             # Reader is a Connection
             self._reader = reader.read
-            self._closer = getattr(reader, "aclose", None)
+            self._closer = getattr(reader, "close", None)
         elif iscoroutinefunction(reader):
             self._reader = reader
             self._closer = None

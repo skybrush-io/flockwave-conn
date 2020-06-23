@@ -17,7 +17,7 @@ class EncoderChannel(SendChannel[MessageType]):
         if iscoroutinefunction(getattr(writer, "write", None)):
             # Writer is a Connection
             self._writer = writer.writer
-            self._closer = getattr(writer, "aclose", None)
+            self._closer = getattr(writer, "close", None)
         elif iscoroutinefunction(writer):
             self._writer = writer
             self._closer = None
