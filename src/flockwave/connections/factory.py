@@ -155,7 +155,7 @@ class Factory:
             raise UnknownConnectionTypeError(connection_type)
 
         parameters = {}
-        for name in ("host", "port", "path"):
+        for name in ("host", "port", "path", "username", "password"):
             if name in specification:
                 parameters[name] = specification[name]
         parameters.update(specification.get("parameters", {}))
