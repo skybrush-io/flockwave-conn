@@ -2,10 +2,13 @@
 
 from __future__ import absolute_import, print_function
 
+import re
+
+from fnmatch import fnmatch
 from os import dup
 from trio.abc import Stream
 from trio.lowlevel import wait_readable
-from typing import Optional
+from typing import Optional, Union
 
 from .factory import create_connection
 from .stream import StreamConnectionBase
@@ -52,7 +55,7 @@ class SerialPortStream(Stream):
         self._device.nonblocking()
         self._fd_stream = FdStream(dup(self._device.fileno()))
 
-    async def aclose(self):
+    async def aclose(self) -> None:
         """Closes the serial port."""
         await self._fd_stream.aclose()
 
@@ -93,23 +96,83 @@ class SerialPortStream(Stream):
 class SerialPortConnection(StreamConnectionBase):
     """Connection for a serial port."""
 
-    def __init__(self, path, baud=115200, stopbits=1):
+    def __init__(
+        self,
+        path: Union[str, int] = "",
+        baud: int = 115200,
+        stopbits: Union[int, float] = 1,
+        *,
+        vid: Optional[str] = None,
+        pid: Optional[str] = None,
+        manufacturer: Optional[str] = None,
+        product: Optional[str] = None,
+        serial_number: Optional[str] = None,
+    ):
         """Constructor.
 
         Parameters:
-            path (str or int): full path to the serial port to open, or a
-                file descriptor for an already opened serial port.
-            baud (int): the baud rate to use when opening the port
-            stopbits (int or float): the number of stop bits to use. Must be
+            path: full path to the serial port to open, or a file descriptor
+                for an already opened serial port. It may also be a string
+                consisting of a USB vendor and product ID, in hexadecimal
+                format, separated by a colon, in which case the first USB serial
+                device matching the given vendor and product ID combination
+                will be used. When the path is empty, the remaining arguments
+                (e.g., `vid` and `pid`) will be used to find a matching USB
+                serial device and the first matching device will be used.
+            baud: the baud rate to use when opening the port
+            stopbits: the number of stop bits to use. Must be
                 1, 1.5 or 2.
+
+        Keyword arguments:
+            vid: specifies the USB vendor ID of the device to use. Must be in
+                hexadecimal notation. Used only when the path is empty.
+            pid: specifies the USB product ID of the device to use. Must be in
+                hexadecimal notation. Used only when the path is empty.
+            manufacturer: specifies the manufacturer of the device, as returned
+                by the device itself on the USB bus. Used only when the path is
+                empty and works for USB devices only. Glob patterns are allowed.
+                Comparison is case insensitive.
+            product: specifies the product name of the device, as returned
+                by the device itself on the USB bus. Used only when the path is
+                empty and works for USB devices only. Glob patterns are allowed.
+                Comparison is case insensitive.
+            serial_number: specifies the serial number of the device, as returned
+                by the device itself on the USB bus. Used only when the path
+                is empty and works for USB devices only.
         """
         super(SerialPortConnection, self).__init__()
+
         self._path = path
         self._baud = baud
         self._stopbits = stopbits
 
+        self._usb_properties = {
+            "vid": vid,
+            "pid": pid,
+            "manufacturer": manufacturer,
+            "product": product,
+            "serial_number": serial_number,
+        }
+
     async def _create_stream(self) -> Stream:
         from serial import STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO
+
+        if self._path:
+            match = re.match(
+                "^(?P<vid>[0-9a-f]{4}):(?P<pid>[0-9a-f]{4})$", self._path, re.IGNORECASE
+            )
+            if match:
+                # path is most likely a USB vendor-product ID pair
+                usb_properties = dict(
+                    self._usb_properties, vid=match.group("vid"), pid=match.group("pid")
+                )
+                path = self._find_matching_usb_device(**usb_properties)
+            else:
+                path = self._path
+        else:
+            path = self._find_matching_usb_device(**self._usb_properties)
+
+        print(f"Opening {path}")
 
         if self._stopbits == 1:
             stopbits = STOPBITS_ONE
@@ -121,5 +184,65 @@ class SerialPortConnection(StreamConnectionBase):
             raise ValueError("unsupported stop bit count: {0!r}".format(self._stopbits))
 
         return await SerialPortStream.create(
-            self._path, baudrate=self._baud, stopbits=stopbits
+            path, baudrate=self._baud, stopbits=stopbits
         )
+
+    def _find_matching_usb_device(self, **kwds) -> str:
+        """Finds a USB serial port that matches the given properties (vendor ID,
+        product ID, manufacturer, product name and serial number) and returns
+        its full pathname.
+
+        See the constructor to learn more about the syntax of these arguments.
+        """
+        from serial.tools.list_ports import comports
+
+        for port_info in comports():
+            if self._port_info_matches(port_info, **kwds):
+                return port_info.device
+
+        kwds = {k: v for k, v in kwds.items() if v is not None}
+        raise RuntimeError(f"No USB serial port matching specification: {kwds!r}")
+
+    @staticmethod
+    def _port_info_matches(
+        port_info,
+        *,
+        vid: Optional[str] = None,
+        pid: Optional[str] = None,
+        manufacturer: Optional[str] = None,
+        product: Optional[str] = None,
+        serial_number: Optional[str] = None,
+    ) -> bool:
+        """Returns whether a USB serial port matches the given properties
+        (vendor ID, product ID, manufacturer, product name and serial number).
+
+        See the constructor to learn more about the syntax of these arguments.
+        """
+        try:
+            vid = int(str(vid), 16) if vid is not None else None
+            pid = int(str(pid), 16) if pid is not None else None
+        except ValueError:
+            return False
+
+        if vid is not None and port_info.vid != vid:
+            return False
+
+        if pid is not None and port_info.pid != pid:
+            return False
+
+        if serial_number is not None and port_info.serial_number != serial_number:
+            return False
+
+        if manufacturer is not None and (
+            port_info.manufacturer is None
+            or not fnmatch(port_info.manufacturer.lower(), manufacturer.lower())
+        ):
+            return False
+
+        if product is not None and (
+            port_info.product is None
+            or not fnmatch(port_info.product.lower(), product.lower())
+        ):
+            return False
+
+        return True
