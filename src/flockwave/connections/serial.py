@@ -172,8 +172,6 @@ class SerialPortConnection(StreamConnectionBase):
         else:
             path = self._find_matching_usb_device(**self._usb_properties)
 
-        print(f"Opening {path}")
-
         if self._stopbits == 1:
             stopbits = STOPBITS_ONE
         elif self._stopbits == 1.5:
