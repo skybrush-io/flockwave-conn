@@ -45,8 +45,11 @@ class StreamConnectionBase(
 
     async def _close(self):
         """Closes the stream."""
-        await self._stream.aclose()
-        self._stream = None
+        try:
+            if self._stream:
+                await self._stream.aclose()
+        finally:
+            self._stream = None
 
     async def read(self, size: Optional[int] = None) -> bytes:
         """Reads some data from the stream.
@@ -56,10 +59,21 @@ class StreamConnectionBase(
                 zero. Optional; if omitted, then the stream object is free to
                 pick a reasonable default.
         """
-        data = await self._stream.receive_some(size)
+        try:
+            data = await self._stream.receive_some(size)
+        except Exception as ex:
+            # read error, close the stream
+            try:
+                await self.close()
+            finally:
+                # This might fail as well, no problem
+                pass
+            raise ex
+
         if not data:
             # End of file reached; close the stream.
             await self.close()
+
         return data
 
     async def write(self, data: bytes) -> None:

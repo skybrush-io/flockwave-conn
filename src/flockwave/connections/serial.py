@@ -70,7 +70,15 @@ class SerialPortStream(Stream):
         # becomes readable and _still_ returns no bytes, then this is a real
         # EOF.
         await wait_readable(self._fd_stream.fileno())
-        return await self._fd_stream.receive_some(max_bytes)
+        try:
+            return await self._fd_stream.receive_some(max_bytes)
+        except Exception as ex:
+            try:
+                await self.aclose()
+            except Exception:
+                # This might fail as well, no worries
+                pass
+            raise ex
 
     async def send_all(self, data: bytes) -> None:
         """Sends some data over the serial port.

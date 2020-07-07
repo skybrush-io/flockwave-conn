@@ -100,13 +100,13 @@ class Factory:
         in this factory, then it will be called with ``host``, ``port``,
         ``path`` and the additional parameters as keyword arguments. For
         instance, assuming that the ``serial`` scheme resolves to the
-        SerialConnection_ class, the following URL::
+        SerialPortConnection_ class, the following URL::
 
             serial:/dev/ttyUSB0?baud=115200
 
         is resolved to the following call::
 
-            SerialConnection(path="/dev/ttyUSB0", baud=115200)
+            SerialPortConnection(path="/dev/ttyUSB0", baud=115200)
 
         Parameter value that contain digits and positive/negative signs
         only will be cast to an integer before passing them to the
