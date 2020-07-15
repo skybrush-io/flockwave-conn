@@ -1,11 +1,14 @@
 *.egg-info
 *.pyc
 *.pyo
+.coverage
 .python-version
 .tags
-.venv/
 build/
 dist/
+htmlcov/
 .eggs/
 .pytest_cache/
 .tox/
+.venv/
+.vscode/

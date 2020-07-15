@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "flockwave-conn"
+version = "1.11.0"
+description = "Connection objects for various data sources"
+authors = ["Tamas Nepusz <tamas@collmot.com>"]
+packages = [
+    { include = "flockwave", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+blinker = "^1.4"
+trio = "^0.16.0"
+trio-util = "^0.1.1"
+netifaces = "^0.10.9"
+flockwave-parsers = "^1.2.0"
+mido = { version = "^1.2.9", optional = true }
+python-rtmidi = { version = "^1.4.1", optional = true }
+pyserial = { version = "^3.4", optional = true }
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.4.3"
+pytest-trio = "^0.6.0"
+pytest-cov = "^2.10.0"
+coverage = {extras = ["toml"], version = "^5.2"}
+
+[tool.poetry.extras]
+midi = ["mido", "python-rtmidi"]
+serial = ["pyserial"]
+
+[[tool.poetry.source]]
+name = "collmot"
+url = "https://pypi.collmot.com/simple/"
+
+[tool.coverage.paths]
+source = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+show_missing = true
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
