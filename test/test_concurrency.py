@@ -1,5 +1,4 @@
 from pytest import raises
-from pytest_trio import trio_fixture
 from trio import WouldBlock, move_on_after, sleep
 
 from flockwave.concurrency import AsyncBundler, Future, FutureCancelled

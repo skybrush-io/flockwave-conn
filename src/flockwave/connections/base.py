@@ -452,6 +452,8 @@ class TaskConnectionBase(ConnectionBase):
             finally:
                 self._closed_event.set()
 
+        await self.close()
+
     def _run(self, started: Callable[[], None]) -> None:
         """Runs the main task of the connection.
 
