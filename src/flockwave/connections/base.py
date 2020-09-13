@@ -6,9 +6,10 @@ import os
 from abc import ABCMeta, abstractmethod, abstractproperty
 from blinker import Signal
 from enum import Enum
-from trio import wrap_file
+from functools import partial
+from trio import CancelScope, Event, Nursery, TASK_STATUS_IGNORED, wrap_file
 from trio_util import AsyncBool
-from typing import Generic, TypeVar
+from typing import Callable, Generic, TypeVar
 
 
 __all__ = (
@@ -113,12 +114,10 @@ class ReadableConnection(Connection, Generic[T]):
 
     @abstractmethod
     async def read(self) -> T:
-        """Reads the given number of bytes from the connection.
+        """Reads some data from the connection.
 
         Returns:
-            bytes: the data that was read; must be empty if and only if there
-                is no more data to read and there _will_ be no more data to read
-                in the future either
+            the data that was read
         """
         raise NotImplementedError
 
@@ -396,3 +395,68 @@ class FDConnectionBase(
 
         self._file_object = value
         return True
+
+
+class TaskConnectionBase(ConnectionBase):
+    """Connection subclass that implements the opening and closing of a
+    connection in a single asynchronous task; the connection is considered open
+    when the task started and it is considered closed when the task stopped for
+    any reason.
+
+    Instances of this class require a nursery that will supervise the execution
+    of the task. This means that you need to call `assign_nursery()` before
+    opening the connection. You can assign a nursery to a connection only when
+    it is closed.
+    """
+
+    def assign_nursery(self, nursery: Nursery) -> None:
+        """Assigns a nursery to the connection that will be responsible for
+        executing the task.
+        """
+        if self.state != ConnectionState.DISCONNECTED:
+            raise RuntimeError(
+                "You can assign a nursery only when the connection is closed"
+            )
+
+        self._nursery = nursery
+        self._cancel_scope = None
+        self._closed_event = None
+
+    async def _open(self) -> None:
+        if not hasattr(self, "_nursery"):
+            raise RuntimeError("You need to assign a nursery to the connection first")
+
+        self._closed_event = Event()
+        self._cancel_scope = await self._nursery.start(
+            self._create_cancel_scope_and_run
+        )
+
+    async def _close(self):
+        if self._cancel_scope:
+            scope = self._cancel_scope
+            self._cancel_scope = None
+            scope.cancel()
+            await self._closed_event.wait()
+
+    async def _create_cancel_scope_and_run(
+        self, *, task_status=TASK_STATUS_IGNORED
+    ) -> None:
+        """Creates a cancel scope that can be used by the ``_close()`` method
+        to cancel the task, and then runs the task of the connection by calling
+        the ``_run()`` method.
+        """
+        with CancelScope() as scope:
+            started = partial(task_status.started, scope)
+            try:
+                await self._run(started=started)
+            finally:
+                self._closed_event.set()
+
+    def _run(self, started: Callable[[], None]) -> None:
+        """Runs the main task of the connection.
+
+        Must be overridden in subclasses. The implementation must ensure that
+        the given `started()` callable is called when the task is ready for
+        execution.
+        """
+        raise NotImplementedError
