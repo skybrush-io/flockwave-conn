@@ -20,6 +20,7 @@ from trio import (
     serve_tcp,
     to_thread,
 )
+from trio.abc import Listener
 from trio.socket import from_stdlib_socket
 
 __all__ = ("open_unix_listeners", "serve_tcp", "serve_unix")
@@ -33,14 +34,18 @@ def _compute_backlog(backlog):
     return min(backlog, 0xFFFF)
 
 
-class UnixSocketListener(SocketListener):
+class UnixSocketListener(Listener[SocketStream]):
     """Specialized SocketListener_ that unlinks the associated socket after
     the listener is closed.
     """
 
     def __init__(self, socket, path: str, inode: int):
-        self.path, self.inode = path, inode
-        super().__init__(from_stdlib_socket(socket))
+        socket = from_stdlib_socket(socket)
+
+        self._wrapped_listener = SocketListener(socket)
+
+        self.path = path
+        self.inode = inode
 
     @staticmethod
     def _create(path: str, mode: int, backlog: int):
@@ -81,11 +86,18 @@ class UnixSocketListener(SocketListener):
             UnixSocketListener._create, path, mode, backlog or 0xFFFF
         )
 
+    async def accept(self):
+        return await self._wrapped_listener.accept()
+
     async def aclose(self) -> None:
         with fail_after(1) as cleanup:
             cleanup.shield = True
-            await super().aclose()
+            await self._wrapped_listener.aclose()
             self._close()
+
+    @property
+    def socket(self):
+        return self._wrapped_listener.socket
 
     def _close(self) -> None:
         try:
@@ -117,7 +129,7 @@ async def open_unix_listeners(
             configured as the maximum backlog.)
 
     Returns:
-        a single :class:`SocketListener`, wrapped in a list
+        a single :class:`UnixSocketListener`, wrapped in a list
     """
     return [await UnixSocketListener.create(path, mode=mode, backlog=backlog)]
 
