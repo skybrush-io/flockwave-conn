@@ -5,6 +5,7 @@ See :meth:`FactoryBase.create()`_ for more information about the two
 specification formats.
 """
 
+from contextlib import contextmanager
 from functools import partial
 from urllib.parse import parse_qs, urlparse
 from typing import Any, Dict, Union
@@ -191,6 +192,17 @@ class Factory:
         factory.
         """
         del self._registry[name]
+
+    @contextmanager
+    def use(self, klass, name: str):
+        """Context manager temporarily registers the given class for this factory
+        with the given name and unregisters it when the context is exited.
+        """
+        try:
+            self.register(name, klass)
+            yield
+        finally:
+            self.unregister(name)
 
     def __call__(self, *args, **kwds):
         """Forwards the invocation to the `create()`_ method."""

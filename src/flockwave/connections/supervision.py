@@ -99,7 +99,7 @@ class ConnectionSupervisor:
                 connection, task, policy = args
                 self._nursery.start_soon(self.supervise, connection, task, policy)
             elif command == "remove":
-                connection, = args
+                (connection,) = args
                 entry = self._entries.get(connection)
                 if entry is not None:
                     entry.cancel()
