@@ -398,6 +398,11 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
         self._address = (interfaces[0][1], self._address[1])
         return await super()._bind_socket(sock)
 
+    @property
+    def broadcast_address(self):
+        """The broadcast address of the subnet."""
+        return self._network.broadcast_address
+
 
 @create_connection.register("unix")
 class UnixDomainSocketConnection(StreamConnectionBase):
