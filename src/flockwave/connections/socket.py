@@ -159,8 +159,9 @@ class UDPSocketConnection(
         host: Optional[str] = "",
         port: int = 0,
         allow_broadcast: bool = False,
-        multicast_ttl: Optional[int] = None,
+        broadcast_interface: Optional[str] = None,
         multicast_interface: Optional[str] = None,
+        multicast_ttl: Optional[int] = None,
         **kwds,
     ):
         """Constructor.
@@ -173,18 +174,26 @@ class UDPSocketConnection(
                 the socket will choose a random ephemeral port number on its
                 own.
             allow_broadcast: whether to allow the socket to send broadcast
-                packets.
-            multicast_ttl: the TTL (time-to-live) value of multicast packets
-                sent from this socket. ``None`` means not to configure the
-                TTL value of outbound packets.
+                packets. Note that if you want to receive broadcast packets as
+                well as sending them, the host needs to be set to the empty
+                string (representing "all interfaces") because broadcast packets
+                arrive on a different address than unicast packets
+            broadcast_interface: the name or IP address of the network interface
+                on which broadcast packets should be sent from this socket.
+                Applies only if ``allow_broadcast`` is truthy. ``None`` means
+                to use the default setting of the OS.
             multicast_interface: the name or IP address of the network interface
                 on which multicast packets should be sent from this socket.
                 ``None`` means not to configure the multicast interface for
                 this socket.
+            multicast_ttl: the TTL (time-to-live) value of multicast packets
+                sent from this socket. ``None`` means not to configure the
+                TTL value of outbound packets.
         """
         super().__init__()
         self._address = (host or "", port or 0)
         self._allow_broadcast = bool(int(allow_broadcast))
+        self._broadcast_interface = broadcast_interface
         self._multicast_interface = multicast_interface
         self._multicast_ttl = int(multicast_ttl) if multicast_ttl is not None else None
 
@@ -193,8 +202,23 @@ class UDPSocketConnection(
         anywhere yet.
         """
         sock = create_socket(SOCK_DGRAM)
+
         if self._allow_broadcast:
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+            if self._broadcast_interface is not None:
+                try:
+                    from socket import IP_BROADCAST_IF
+                except ImportError:
+                    raise RuntimeError(
+                        "this OS does not support setting the broadcast interface of a socket"
+                    )
+                broadcast_interface = await to_thread.run_sync(
+                    resolve_network_interface_or_address, self._broadcast_interface
+                )
+                sock.setsockopt(
+                    IPPROTO_IP, IP_BROADCAST_IF, inet_aton(broadcast_interface)
+                )
+
         if self._multicast_ttl is not None:
             sock.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, self._multicast_ttl)
         if self._multicast_interface is not None:
@@ -202,7 +226,9 @@ class UDPSocketConnection(
                 resolve_network_interface_or_address, self._multicast_interface
             )
             sock.setsockopt(IPPROTO_IP, IP_MULTICAST_IF, inet_aton(multicast_interface))
+
         await self._bind_socket(sock)
+
         return sock
 
     async def _bind_socket(self, sock):
@@ -249,6 +275,15 @@ class UDPSocketConnection(
 
 
 @create_connection.register("udp-broadcast")
+def _create_udp_broadcast_connection(*args, **kwds):
+    """Helper function that creates a UDP broadcast connection with
+    UDPSocketConnection_.
+    """
+    kwds["allow_broadcast"] = True
+    return UDPSocketConnection(*args, **kwds)
+
+
+@create_connection.register("udp-broadcast-in")
 class BroadcastUDPSocketConnection(UDPSocketConnection):
     """Connection object that binds to the broadcast address of a given
     subnet or a given interface and listens for incoming packets from there.
