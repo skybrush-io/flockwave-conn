@@ -1,6 +1,7 @@
 """Concurrency-related utility functions."""
 
 from collections.abc import Mapping
+from contextlib import asynccontextmanager
 from functools import partial, wraps
 from trio import Cancelled, Event, WouldBlock
 from trio_util import MailboxRepeatedEvent
@@ -70,14 +71,28 @@ class AsyncBundler:
         """Clears all the items currently waiting in the bundle."""
         self._data.clear()
 
+    @asynccontextmanager
+    async def iter(self):
+        try:
+            it = self.__aiter__()
+            yield it
+        finally:
+            await it.aclose()
+
     async def __aiter__(self):
         """Asynchronously iterates over non-empty batches of items that
         were added to the set.
         """
-        async for _ in self._event:
-            result = set(self._data)
-            self._data.clear()
-            yield result
+        it = None
+        try:
+            it = self._event.__aiter__()
+            async for _ in it:
+                result = set(self._data)
+                self._data.clear()
+                yield result
+        finally:
+            if it:
+                await it.aclose()
 
 
 class FutureCancelled(RuntimeError):

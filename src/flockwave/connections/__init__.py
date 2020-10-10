@@ -19,6 +19,7 @@ from .file import FileConnection
 from .serial import SerialPortConnection
 from .servers import open_unix_listeners, serve_unix
 from .socket import (
+    TCPListenerConnection,
     TCPStreamConnection,
     UDPSocketConnection,
     UnixDomainSocketConnection,

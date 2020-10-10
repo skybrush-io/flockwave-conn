@@ -31,38 +31,54 @@ class TestAsyncBundler:
         bundler = AsyncBundler()
         with move_on_after(10):
             bundler.add_many([2, 3, 5, 7])
-            async for bundle in bundler:
-                assert bundle == set([2, 3, 5, 7])
-                break
+            async with bundler.iter() as bundle_iter:
+                async for bundle in bundle_iter:
+                    assert bundle == set([2, 3, 5, 7])
+                    break
+
             bundler.add_many((11, 13))
+
+            was_in_loop = False
             async for bundle in bundler:
                 assert bundle == set([11, 13])
+                was_in_loop = True
+            assert was_in_loop
 
     async def test_clears_items_before_yielding(self, autojump_clock):
         bundler = AsyncBundler()
         with move_on_after(10):
             bundler.add_many([2, 3, 5, 7])
             bundler.clear()
-            async for bundle in bundler:
-                assert bundle == set()
-                break
+            async with bundler.iter() as bundle_iter:
+                async for bundle in bundle_iter:
+                    assert bundle == set()
+                    break
 
             bundler.add_many([2, 3, 5, 7])
             bundler.clear()
             bundler.add_many([11, 13])
+
+            was_in_loop = False
             async for bundle in bundler:
                 assert bundle == set([11, 13])
+                was_in_loop = True
+            assert was_in_loop
 
     async def test_filters_duplicates(self, autojump_clock):
         bundler = AsyncBundler()
         with move_on_after(10):
             bundler.add_many([2, 3, 3, 5, 5, 5, 7])
-            async for bundle in bundler:
-                assert bundle == set([2, 3, 5, 7])
-                break
+            async with bundler.iter() as bundle_iter:
+                async for bundle in bundle_iter:
+                    assert bundle == set([2, 3, 5, 7])
+                    break
             bundler.add_many((2, 2, 3, 11))
+
+            was_in_loop = False
             async for bundle in bundler:
                 assert bundle == set([2, 3, 11])
+                was_in_loop = True
+            assert was_in_loop
 
     async def test_separated_producer_consumer(self, autojump_clock, nursery):
         bundler = AsyncBundler()

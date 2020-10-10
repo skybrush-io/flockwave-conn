@@ -22,7 +22,12 @@ from trio.socket import (
 )
 from typing import Optional, Tuple, Union
 
-from .base import ConnectionBase, ReadableConnection, WritableConnection
+from .base import (
+    ConnectionBase,
+    ListenerConnection,
+    ReadableConnection,
+    WritableConnection,
+)
 from .errors import ConnectionError
 from .factory import create_connection
 from .stream import StreamConnectionBase
@@ -38,6 +43,7 @@ from flockwave.networking import (
 __all__ = (
     "BroadcastUDPSocketConnection",
     "MulticastUDPSocketConnection",
+    "TCPListenerConnection",
     "TCPStreamConnection",
     "UDPSocketConnection",
     "UnixDomainSocketConnection",
@@ -138,12 +144,85 @@ class TCPStreamConnection(StreamConnectionBase, InternetAddressMixin):
         InternetAddressMixin.__init__(self)
         self._address = (host or "", port or 0)
 
-    async def _create_stream(self):
+    async def _create_stream(self) -> SocketStream:
         """Creates a new non-blocking reusable TCP socket and connects it to
         the target of the connection.
         """
         host, port = self._address
         return await open_tcp_stream(host, port)
+
+
+class IncomingTCPStreamConnection(StreamConnectionBase, InternetAddressMixin):
+    """Connection object that is created when the socket behind a listening
+    TCPListenerConnection_ accepts a new client connection.
+    """
+
+    def __init__(self, address, socket: SocketType):
+        """Constructor.
+
+        Parameters:
+            socket: the Trio socket that leads to the connected client
+        """
+        StreamConnectionBase.__init__(self)
+        InternetAddressMixin.__init__(self)
+        self._address = address
+        self._stored_socket = socket
+
+    async def _create_stream(self) -> SocketStream:
+        """Creates a Trio SocketStream anew non-blocking reusable TCP socket and connects it to
+        the target of the connection.
+        """
+        if self._stored_socket is not None:
+            stream = SocketStream(self._stored_socket)
+            self._stored_socket = None
+            return stream
+        else:
+            raise RuntimeError("this connection can be opened only once")
+
+
+@create_connection.register("tcp-listener")
+class TCPListenerConnection(
+    SocketConnectionBase, ListenerConnection[IncomingTCPStreamConnection]
+):
+    """Connection object that wraps a Trio TCP listener that listens for
+    incoming TCP connections on a specific port.
+    """
+
+    def __init__(self, host: str = "", port: int = 0, *, backlog: int = -1, **kwds):
+        """Constructor.
+
+        Parameters:
+            host: the IP address or hostname that the socket will listen on.
+            port: the port number that the socket will listen on; zero means to
+                pick an unused port
+            backlog: the size of the backlog for incoming connections; negative
+                numbers mean that the OS should choose a reasonable default
+        """
+        SocketConnectionBase.__init__(self)
+        ListenerConnection.__init__(self)
+        self._address = (host or "", port or 0)
+        self._backlog = backlog
+
+    async def _create_and_open_socket(self) -> SocketType:
+        """Creates and opens the socket that the connection will use."""
+        sock = create_socket(SOCK_STREAM)
+        if self._backlog >= 0:
+            sock.listen(self._backlog)
+        else:
+            sock.listen()
+        return sock
+
+    async def _bind_socket(self, sock) -> None:
+        """Binds the given TCP socket to the address where it should listen for
+        incoming TCP connections.
+        """
+        await sock.bind(self._address)
+
+    async def accept(self) -> IncomingTCPStreamConnection:
+        client_socket, address = await self._socket.accept()
+        connection = IncomingTCPStreamConnection(address, client_socket)
+        await connection.open()
+        return connection
 
 
 @create_connection.register("udp")

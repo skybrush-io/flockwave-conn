@@ -17,6 +17,7 @@ __all__ = (
     "ConnectionState",
     "ConnectionBase",
     "FDConnectionBase",
+    "ListenerConnection",
     "ReadableConnection",
     "WritableConnection",
 )
@@ -107,6 +108,20 @@ class Connection(metaclass=ABCMeta):
 
 
 T = TypeVar("T")
+
+
+class ListenerConnection(Connection, Generic[T]):
+    """Interface specification for connection objects that wait for (i.e.
+    listen to) new connections and then spawn new tasks for every new
+    connection attempt.
+    """
+
+    @abstractmethod
+    async def accept(self) -> T:
+        """Waits for the next incoming connection and returns an object
+        representing the connection when it arrives.
+        """
+        raise NotImplementedError
 
 
 class ReadableConnection(Connection, Generic[T]):
