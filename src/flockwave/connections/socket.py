@@ -220,9 +220,7 @@ class TCPListenerConnection(
         await sock.bind(self._address)
 
     async def accept(self) -> IncomingTCPStreamConnection:
-        print(repr(self._address))
         client_socket, address = await self._socket.accept()
-        print("QQQQQQQQQQQ")
         connection = IncomingTCPStreamConnection(address, client_socket)
         await connection.open()
         return connection
