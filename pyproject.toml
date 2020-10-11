@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "flockwave-conn"
-version = "2.1.1"
+version = "2.1.2"
 description = "Connection objects for various data sources"
 authors = ["Tamas Nepusz <tamas@collmot.com>"]
 packages = [
