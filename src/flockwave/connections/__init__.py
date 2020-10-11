@@ -10,6 +10,7 @@ from .base import (
     Connection,
     ConnectionBase,
     ConnectionState,
+    ListenerConnection,
     ReadableConnection,
     WritableConnection,
 )
@@ -45,6 +46,7 @@ __all__ = (
     "DummyConnection",
     "FileConnection",
     "IPAddressAndPort",
+    "ListenerConnection",
     "MulticastUDPSocketConnection",
     "ReadableConnection",
     "SerialPortConnection",
@@ -52,6 +54,7 @@ __all__ = (
     "StreamConnectionBase",
     "StreamWrapperConnection",
     "SupervisionPolicy",
+    "TCPListenerConnection",
     "TCPStreamConnection",
     "UDPSocketConnection",
     "UnixDomainSocketConnection",

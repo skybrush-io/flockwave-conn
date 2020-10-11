@@ -180,7 +180,7 @@ class IncomingTCPStreamConnection(StreamConnectionBase, InternetAddressMixin):
             raise RuntimeError("this connection can be opened only once")
 
 
-@create_connection.register("tcp-listener")
+@create_connection.register("tcp-listen")
 class TCPListenerConnection(
     SocketConnectionBase, ListenerConnection[IncomingTCPStreamConnection]
 ):
@@ -206,6 +206,7 @@ class TCPListenerConnection(
     async def _create_and_open_socket(self) -> SocketType:
         """Creates and opens the socket that the connection will use."""
         sock = create_socket(SOCK_STREAM)
+        await self._bind_socket(sock)
         if self._backlog >= 0:
             sock.listen(self._backlog)
         else:
@@ -219,7 +220,9 @@ class TCPListenerConnection(
         await sock.bind(self._address)
 
     async def accept(self) -> IncomingTCPStreamConnection:
+        print(repr(self._address))
         client_socket, address = await self._socket.accept()
+        print("QQQQQQQQQQQ")
         connection = IncomingTCPStreamConnection(address, client_socket)
         await connection.open()
         return connection

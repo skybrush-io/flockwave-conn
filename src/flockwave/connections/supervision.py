@@ -1,10 +1,12 @@
+import logging
+
 from dataclasses import dataclass
 from functools import partial
 from trio import CancelScope, open_memory_channel, open_nursery, sleep
 from trio_util import wait_any
 from typing import Awaitable, Callable, Optional
 
-from .base import Connection
+from .base import Connection, ListenerConnection
 
 
 __all__ = (
@@ -21,12 +23,16 @@ SupervisionPolicy = Callable[[Connection, Exception], Optional[float]]
 ConnectionTask = Callable[[Connection], Awaitable[None]]
 
 
+log = logging.getLogger(__name__.rpartition(".")[0])
+
+
 class ConnectionSupervisor:
     """Connection supervisor object that supervises a set of connections and
     attempts to ensure that each connection remains open.
 
     This object is a more complex version of the `supervise()` function that is
-    able to handle multiple connections at the same time.
+    able to handle multiple connections at the same time and that can take care
+    of accepting incoming connections from listeners on its own.
 
     See `supervise()` for more details about the supervision policy and how
     the supervision works in general.
@@ -67,7 +73,9 @@ class ConnectionSupervisor:
         Parameters:
             connection: the connection to supervise
             task: optional async callable that will be called with the connection
-                as its only argument after it is opened
+                as its only argument after it is opened. When the connection is
+                a listener connection, the task will be called for each _incoming_
+                connection accepted by the listener.
             policy: the supervision policy to use; defaults to the default
                 supervision policy of the supervisor.
         """
@@ -81,9 +89,7 @@ class ConnectionSupervisor:
         await self._tx_queue.send(("remove", (connection,)))
 
     async def run(self):
-        """Main loop of the connection supervisor. Must be executed in a Trio
-        nursery.
-        """
+        """Main loop of the connection supervisor."""
         async with open_nursery() as nursery:
             self._nursery = nursery
             try:
@@ -127,12 +133,31 @@ class ConnectionSupervisor:
 
         policy = policy or self._policy
 
+        if isinstance(connection, ListenerConnection):
+            task = partial(self._handle_incoming_connections_from_listener, task=task)
+
         with CancelScope() as scope:
             self._entries[connection] = self.Entry(cancel_scope=scope, policy=policy)
             try:
                 await supervise(connection, task=task, policy=self._policy)
             finally:
                 del self._entries[connection]
+
+    async def _handle_incoming_connections_from_listener(
+        self, connection: ListenerConnection, task: ConnectionTask
+    ) -> None:
+        """Listens for incoming connections on the given listener connection in
+        an infinite loop and spawns the given task for every accepted incoming
+        connection.
+        """
+        try:
+            while True:
+                client = await connection.accept()
+                self._nursery.start_soon(task, client)
+        except Exception:
+            # Listener died; don't let the exception propagate and crash the
+            # nursery
+            log.exception("Unexpected exception while accepting connections")
 
 
 async def supervise(
