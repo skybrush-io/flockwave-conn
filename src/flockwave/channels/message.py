@@ -6,21 +6,21 @@ encodes them and writes them to a WritableConnection_.
 from collections import deque
 from contextlib import asynccontextmanager
 from logging import Logger
-from tinyrpc.dispatch import RPCDispatcher
-from tinyrpc.protocols import RPCProtocol
 from trio import EndOfChannel
 from trio.abc import Channel
 from typing import Optional, Union
 
-from flockwave.encoders.rpc import create_rpc_encoder
-from flockwave.parsers.rpc import create_rpc_parser
-
 from ..connections import Connection
 
-from .rpc import serve_rpc_requests
 from .types import Encoder, MessageType, Parser, RawType, RPCRequestHandler
 
 __all__ = ("MessageChannel",)
+
+MYPY = False
+
+if MYPY:
+    from tinyrpc.dispatch import RPCDispatcher
+    from tinyrpc.protocols import RPCProtocol
 
 
 class MessageChannel(Channel[MessageType]):
@@ -30,13 +30,16 @@ class MessageChannel(Channel[MessageType]):
     """
 
     @classmethod
-    def for_rpc_protocol(cls, protocol: RPCProtocol, connection: Connection):
+    def for_rpc_protocol(cls, protocol: "RPCProtocol", connection: Connection):
         """Helper method to construct a message channel that will send and
         receive messages using the given RPC protocol.
 
         Parameters:
             protocol: the protocol to use on the message channel
         """
+        from flockwave.encoders.rpc import create_rpc_encoder
+        from flockwave.parsers.rpc import create_rpc_parser
+
         # Create a parser-encoder pair that will be used to parse incoming messages
         # and serialize outgoing messages
         parser = create_rpc_parser(protocol=protocol)
@@ -79,7 +82,7 @@ class MessageChannel(Channel[MessageType]):
     @asynccontextmanager
     async def serve_rpc_requests(
         self,
-        handler: Union[RPCRequestHandler, RPCDispatcher],
+        handler: Union[RPCRequestHandler, "RPCDispatcher"],
         log: Optional[Logger] = None,
         timeout: float = 5,
     ):
@@ -103,6 +106,8 @@ class MessageChannel(Channel[MessageType]):
             `one_way` specifies whether the request needs a response (`False`,
             which is the default) or not (`True`).
         """
+        from .rpc import serve_rpc_requests
+
         if self._protocol is None:
             raise ValueError(
                 f"{self.__class__.__name__} was not created with .for_rpc_protocol()"
