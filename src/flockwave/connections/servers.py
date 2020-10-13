@@ -101,6 +101,11 @@ class UnixSocketListener(Listener[SocketStream]):
 
     def _close(self) -> None:
         try:
+            from socket import AF_UNIX
+        except ImportError:
+            raise RuntimeError("UNIX domain sockets are not supported on this platform")
+
+        try:
             # Test connection
             s = socket(AF_UNIX)
             try:
