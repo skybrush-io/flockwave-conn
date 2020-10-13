@@ -1,8 +1,9 @@
 import os
+import sys
 
-from pytest import raises
+from pytest import mark, raises
 from trio import move_on_after
-from trio.socket import AF_UNIX, SOCK_STREAM, socket
+from trio.socket import SOCK_STREAM, socket
 
 from flockwave.connections import UnixDomainSocketConnection, serve_unix
 from flockwave.listeners import UnixDomainSocketListener
@@ -21,6 +22,7 @@ async def echo(stream):
         await stream.send_all(data)
 
 
+@mark.skipif(sys.platform == "win32", reason="not supported on Windows")
 async def test_unix_socket_connection_echo(nursery, tmp_path_factory, autojump_clock):
     socket_path = get_socket_path(tmp_path_factory)
 
@@ -36,6 +38,7 @@ async def test_unix_socket_connection_echo(nursery, tmp_path_factory, autojump_c
     assert not os.path.exists(socket_path)
 
 
+@mark.skipif(sys.platform == "win32", reason="not supported on Windows")
 async def test_unix_socket_when_pathname_is_already_taken(nursery, tmp_path_factory):
     socket_path = get_socket_path(tmp_path_factory)
     with open(socket_path, "w") as fp:
@@ -45,7 +48,10 @@ async def test_unix_socket_when_pathname_is_already_taken(nursery, tmp_path_fact
         await nursery.start(serve_unix, echo, socket_path)
 
 
+@mark.skipif(sys.platform == "win32", reason="not supported on Windows")
 async def test_unix_socket_cleanup_on_start(nursery, tmp_path_factory):
+    from trio.socket import AF_UNIX
+
     socket_path = get_socket_path(tmp_path_factory)
     sock = socket(AF_UNIX, SOCK_STREAM)
     await sock.bind(socket_path)

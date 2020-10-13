@@ -6,7 +6,7 @@ import os
 import stat
 
 from math import inf
-from socket import socket, AF_UNIX
+from socket import socket
 from typing import Awaitable, Callable, Optional
 from uuid import uuid4
 
