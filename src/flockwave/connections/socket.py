@@ -500,6 +500,7 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
 
         super().__init__(port=port, **kwds)
 
+        self._broadcast_address = None
         self._network = ip_network(network)
 
     async def _bind_socket(self, sock):
@@ -516,7 +517,11 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
     @property
     def broadcast_address(self):
         """The broadcast address of the subnet."""
-        return self._network.broadcast_address
+        return self._broadcast_address if self._broadcast_address is not NOne else self._network.broadcast_address
+
+    @broadcast_address.setter
+    def broadcast_address(self, value):
+        self._broadcast_address = value
 
 
 @create_connection.register("unix")
