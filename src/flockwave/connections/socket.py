@@ -284,6 +284,7 @@ class UDPSocketConnection(
         sock = create_socket(SOCK_DGRAM)
 
         if self._allow_broadcast:
+            self.broadcast_address = ("255.255.255.255", self.address[1])
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
             if self._broadcast_interface is not None:
                 try:
@@ -517,7 +518,7 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
     @property
     def broadcast_address(self):
         """The broadcast address of the subnet."""
-        return self._broadcast_address if self._broadcast_address is not NOne else self._network.broadcast_address
+        return self._broadcast_address if self._broadcast_address is not None else self._network.broadcast_address
 
     @broadcast_address.setter
     def broadcast_address(self, value):
