@@ -145,6 +145,12 @@ class Future(Generic[T]):
         in the future.
 
         If the function throws an exception, sets the exception in the future.
+
+        It must be ensured that you call this function only once; if it is called
+        a second time while the execution of the first function is still in
+        progress, it will apparently succeed, but then later on you will get an
+        error when the second function terminates and it tries to write its
+        result into the future.
         """
         self._ensure_not_done()
         try:
@@ -257,7 +263,7 @@ class FutureMap(Mapping, Generic[T]):
 
     ```
     map = FutureMap()
-    with map.new() as future:
+    with map.new("some_id") as future:
         # pass the future to some other, already running task that will
         # eventually resolve it
         result = await future
