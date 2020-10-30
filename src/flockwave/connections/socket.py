@@ -240,6 +240,7 @@ class UDPSocketConnection(
         port: int = 0,
         allow_broadcast: bool = False,
         broadcast_interface: Optional[str] = None,
+        broadcast_port: Optional[int] = None,
         multicast_interface: Optional[str] = None,
         multicast_ttl: Optional[int] = None,
         **kwds,
@@ -262,6 +263,10 @@ class UDPSocketConnection(
                 on which broadcast packets should be sent from this socket.
                 Applies only if ``allow_broadcast`` is truthy. ``None`` means
                 to use the default setting of the OS.
+            broadcast_port: the destination port to use when sending broadcasts.
+                Automatically sets `allow_broadcast` to `True` when it is not
+                `None`. `None` means that broadcasts should use the same port
+                as the one the socket is bound to.
             multicast_interface: the name or IP address of the network interface
                 on which multicast packets should be sent from this socket.
                 ``None`` means not to configure the multicast interface for
@@ -274,8 +279,14 @@ class UDPSocketConnection(
         self._address = (host or "", port or 0)
         self._allow_broadcast = bool(int(allow_broadcast))
         self._broadcast_interface = broadcast_interface
+        self._broadcast_port = (
+            int(broadcast_port) if broadcast_port is not None else None
+        )
         self._multicast_interface = multicast_interface
         self._multicast_ttl = int(multicast_ttl) if multicast_ttl is not None else None
+
+        if self._broadcast_port is not None:
+            self._allow_broadcast = True
 
     async def _create_and_open_socket(self):
         """Creates a new non-blocking reusable UDP socket that is not bound
@@ -284,7 +295,11 @@ class UDPSocketConnection(
         sock = create_socket(SOCK_DGRAM)
 
         if self._allow_broadcast:
-            self.broadcast_address = ("255.255.255.255", self.address[1])
+            if self._broadcast_port is None:
+                self._broadcast_port = self.address[1]
+
+            self.broadcast_address = ("255.255.255.255", self._broadcast_port)
+
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
             if self._broadcast_interface is not None:
                 try:
@@ -518,7 +533,11 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
     @property
     def broadcast_address(self):
         """The broadcast address of the subnet."""
-        return self._broadcast_address if self._broadcast_address is not None else self._network.broadcast_address
+        return (
+            self._broadcast_address
+            if self._broadcast_address is not None
+            else self._network.broadcast_address
+        )
 
     @broadcast_address.setter
     def broadcast_address(self, value):
