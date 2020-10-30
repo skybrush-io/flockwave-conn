@@ -55,6 +55,9 @@ class LossyChannelWrapper(Channel[MessageType]):
         self._loss_probability = float(loss_probability)
         self._random = random
 
+    def __getattr__(self, name: str):
+        return getattr(self._wrapped, name)
+
     async def aclose(self) -> None:
         await self._wrapped.aclose()
 
