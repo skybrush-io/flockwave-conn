@@ -2,7 +2,7 @@
 
 from ipaddress import ip_address, ip_network, IPv6Network
 from netifaces import AF_INET, AF_INET6, gateways, ifaddresses, interfaces
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple, Union
 
 import trio.socket
 
@@ -87,7 +87,7 @@ def find_interfaces_in_network(network: str) -> Sequence[Tuple[str, str, str]]:
 
 
 def format_socket_address(
-    sock, format: str = "{host}:{port}", in_subnet_of: Optional[str, int] = None
+    sock, format: str = "{host}:{port}", in_subnet_of: Optional[Union[str, int]] = None
 ) -> str:
     """Formats the address that the given socket is bound to in the
     standard hostname-port format.
