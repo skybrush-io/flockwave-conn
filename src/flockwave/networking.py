@@ -28,7 +28,7 @@ def create_socket(socket_type) -> trio.socket.socket:
             TCP sockets, ``socket.SOCK_DGRAM`` for UDP sockets)
 
     Returns:
-        trio.socket.socket: the newly created socket
+        the newly created socket
     """
     sock = trio.socket.socket(trio.socket.AF_INET, socket_type)
     if hasattr(trio.socket, "SO_REUSEADDR"):
@@ -86,20 +86,21 @@ def find_interfaces_in_network(network: str) -> Sequence[Tuple[str, str, str]]:
     return candidates
 
 
-def format_socket_address(sock, format="{host}:{port}", in_subnet_of=None):
+def format_socket_address(
+    sock, format: str = "{host}:{port}", in_subnet_of: Optional[str, int] = None
+) -> str:
     """Formats the address that the given socket is bound to in the
     standard hostname-port format.
 
     Parameters:
-        sock (socket.socket): the socket to format
-        format (str): format string in brace-style that is used by
+        sock: the socket to format
+        format: format string in brace-style that is used by
             ``str.format()``. The tokens ``{host}`` and ``{port}`` will be
             replaced by the hostname and port.
-        in_subnet_of (Optional[str,int]): the IP address and port that should
-            preferably be in the same subnet as the response. This is used only
-            if the socket is bound to all interfaces, in which case we will
-            try to pick an interface that is in the same subnet as the remote
-            address.
+        in_subnet_of: the IP address and port that should preferably be in the
+            same subnet as the response. This is used only if the socket is
+            bound to all interfaces, in which case we will try to pick an
+            interface that is in the same subnet as the remote address.
 
     Returns:
         str: a formatted representation of the address and port of the
@@ -135,7 +136,7 @@ def get_address_of_network_interface(value: str, family: int = AF_INET) -> str:
         raise ValueError(f"interface {value} has no address")
 
 
-def get_all_ipv4_addresses():
+def get_all_ipv4_addresses() -> Sequence[str]:
     """Returns all IPv4 addresses of the current machine."""
     result = []
     for iface in interfaces():
@@ -170,19 +171,20 @@ def get_broadcast_address_of_network_interface(
         raise ValueError(f"interface {value} has no broadcast address")
 
 
-def get_socket_address(sock, format="{host}:{port}", in_subnet_of=None):
+def get_socket_address(
+    sock, in_subnet_of: Optional[Tuple[str, int]] = None
+) -> Tuple[str, int]:
     """Gets the hostname and port that the given socket is bound to.
 
     Parameters:
-        sock (socket.socket): the socket for which we need its address
-        in_subnet_of (Optional[str,int]): the IP address and port that should
-            preferably be in the same subnet as the response. This is used only
-            if the socket is bound to all interfaces, in which case we will
-            try to pick an interface that is in the same subnet as the remote
-            address.
+        sock: the socket for which we need its address
+        in_subnet_of: the IP address and port that should preferably be in the
+            same subnet as the response. This is used only if the socket is
+            bound to all interfaces, in which case we will try to pick an
+            interface that is in the same subnet as the remote address.
 
     Returns:
-        Tuple[str, int]: the host and port where the socket is bound to
+        the host and port where the socket is bound to
     """
     if hasattr(sock, "getsockname"):
         host, port = sock.getsockname()
