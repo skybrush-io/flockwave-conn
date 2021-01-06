@@ -4,10 +4,12 @@ from ipaddress import ip_address, ip_network, IPv6Address, IPv6Network
 from netifaces import AF_INET, AF_INET6, gateways, ifaddresses, interfaces
 from typing import Optional, Sequence, Tuple, Union
 
+import platform
 import trio.socket
 
 __all__ = (
     "create_socket",
+    "enable_tcp_keepalive",
     "find_interfaces_with_address",
     "find_interfaces_in_network",
     "format_socket_address",
@@ -45,6 +47,44 @@ def create_socket(socket_type) -> trio.socket.socket:
     return sock
 
 
+def enable_tcp_keepalive(
+    sock, after_idle_sec: int = 1, interval_sec: int = 3, max_fails: int = 5
+) -> None:
+    """Enables TCP keepalive settings on the given socket.
+
+    Parameters:
+        after_idle_sec: number of seconds after which the socket should start
+            sending TCP keepalive packets
+        interval_sec: number of seconds between consecutive TCP keepalive
+            packets
+        max_fails: maximum number of failures allowed before terminating the
+            TCP connection
+    """
+    sock.setsockopt(trio.socket.SOL_SOCKET, trio.socket.SO_KEEPALIVE, 1)
+
+    if hasattr(trio.socket, "TCP_KEEPIDLE"):
+        print("A")
+        sock.setsockopt(
+            trio.socket.IPPROTO_TCP, trio.socket.TCP_KEEPIDLE, after_idle_sec
+        )
+    elif platform.system() == "Darwin":
+        # This is for macOS
+        try:
+            TCP_KEEPALIVE = 0x10  # scraped from the Darwin headers
+            sock.setsockopt(trio.socket.IPPROTO_TCP, TCP_KEEPALIVE, after_idle_sec)
+        except Exception as ex:
+            print(repr(ex))
+            pass
+
+    if hasattr(trio.socket, "TCP_KEEPINTVL"):
+        sock.setsockopt(
+            trio.socket.IPPROTO_TCP, trio.socket.TCP_KEEPINTVL, interval_sec
+        )
+
+    if hasattr(trio.socket, "TCP_KEEPCNT"):
+        sock.setsockopt(trio.socket.IPPROTO_TCP, trio.socket.TCP_KEEPCNT, max_fails)
+
+
 def find_interfaces_with_address(address: str) -> Sequence[Tuple[str, str]]:
     """Finds the network interfaces of the current machine that contain the given
     address in their network.
@@ -67,8 +107,7 @@ def find_interfaces_with_address(address: str) -> Sequence[Tuple[str, str]]:
     for interface in interfaces():
         specs = ifaddresses(interface).get(family) or []
         ip_addresses_in_network = (
-            (spec.get("addr"), spec.get("netmask"))
-            for spec in specs
+            (spec.get("addr"), spec.get("netmask")) for spec in specs
         )
         for if_address, netmask in ip_addresses_in_network:
             network = ip_network(f"{if_address}/{netmask}", strict=False)
