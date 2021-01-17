@@ -83,7 +83,6 @@ class _ThreadedSerialPortStream(SerialPortStreamBase):
                 It must already be open.
         """
         self._device = device
-        self._device.nonblocking()
 
         self._send_conflict_detector = ConflictDetector(
             "another task is using this stream for send"
