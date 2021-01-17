@@ -2,10 +2,12 @@
 
 from __future__ import absolute_import, print_function
 
+import platform
 import re
 
 from fnmatch import fnmatch
 from os import dup
+from trio import BusyResourceError, ClosedResourceError, sleep, to_thread
 from trio.abc import Stream
 from trio.lowlevel import wait_readable
 from typing import Optional, Union
@@ -16,10 +18,8 @@ from .stream import StreamConnectionBase
 __all__ = ("SerialPortConnection",)
 
 
-class SerialPortStream(Stream):
-    """A Trio stream implementation that talks to a serial port using
-    PySerial in a separate thread.
-    """
+class SerialPortStreamBase(Stream):
+    """Base class for serial port stream implementations."""
 
     @classmethod
     async def create(cls, *args, **kwds) -> Stream:
@@ -35,6 +35,110 @@ class SerialPortStream(Stream):
         from serial import Serial
 
         return cls(Serial(timeout=0, *args, **kwds))
+
+
+class ConflictDetector:
+    """Detect when two tasks are about to perform operations that would
+    conflict.
+
+    Use as a synchronous context manager; if two tasks enter it at the same
+    time then the second one raises an error. You can use it when there are
+    two pieces of code that *would* collide and need a lock if they ever were
+    called at the same time, but that should never happen.
+
+    This is copied straight from `trio._util`.
+    """
+
+    def __init__(self, msg):
+        self._msg = msg
+        self._held = False
+
+    def __enter__(self):
+        if self._held:
+            raise BusyResourceError(self._msg)
+        else:
+            self._held = True
+
+    def __exit__(self, *args):
+        self._held = False
+
+
+class _ThreadedSerialPortStream(SerialPortStreamBase):
+    """A Trio stream implementation that talks to a serial port using
+    PySerial in a separate thread. Used on Windows where we don't have
+    FdStream in `trio`.
+    """
+
+    #: This matches the default from trio.lowlevel.FdStream
+    DEFAULT_RECEIVE_SIZE = 65536
+
+    def __init__(self, device):
+        """Constructor.
+
+        Do not use this method unless you know what you are doing; use
+        `SerialPortStream.create()` instead.
+
+        Parameters:
+            device: the `pySerial` serial port object to manage in this stream.
+                It must already be open.
+        """
+        self._device = device
+        self._device.nonblocking()
+
+        self._send_conflict_detector = ConflictDetector(
+            "another task is using this stream for send"
+        )
+        self._receive_conflict_detector = ConflictDetector(
+            "another task is using this stream for receive"
+        )
+
+        self._closing = False
+
+    async def aclose(self) -> None:
+        """Closes the serial port."""
+        self._closing = True
+        await to_thread.run_sync(self._device.close)
+
+    async def receive_some(self, max_bytes: Optional[int] = None) -> bytes:
+        if max_bytes is None:
+            max_bytes = self.DEFAULT_RECEIVE_SIZE
+
+        with self._receive_conflict_detector:
+            while not self._closing:
+                to_read = self._device.in_waiting
+                if to_read:
+                    return await to_thread.run_sync(
+                        self._device.read, min(to_read, max_bytes)
+                    )
+                else:
+                    # nothing to read at the moment, wait a bit
+                    await sleep(0.01)
+
+        raise ClosedResourceError()
+
+    async def send_all(self, data: bytes):
+        if not data:
+            # make sure it's a checkpoint
+            await sleep(0)
+            return
+
+        with self._send_conflict_detector:
+            while data:
+                num_written = await to_thread.run_sync(self._device.write, data)
+                if num_written < 0:
+                    raise RuntimeError("serial.write() returned a negative number")
+
+                data = data[num_written:]
+
+    async def wait_send_all_might_not_block(self) -> None:
+        pass
+
+
+class _FdStreamBasedSerialPortStream(SerialPortStreamBase):
+    """A Trio stream implementation that talks to a serial port using
+    PySerial in a separate thread. Used on all sensible platforms where
+    we can leverage `trio.FdStream`.
+    """
 
     def __init__(self, device):
         """Constructor.
@@ -98,6 +202,12 @@ class SerialPortStream(Stream):
 
     async def wait_send_all_might_not_block(self) -> None:
         await self._fd_stream.wait_send_all_might_not_block()
+
+
+if platform.system() == "Windows":
+    SerialPortStream = _ThreadedSerialPortStream
+else:
+    SerialPortStream = _FdStreamBasedSerialPortStream
 
 
 @create_connection.register("serial")
