@@ -1,8 +1,8 @@
 """Generic networking-related utility functions."""
 
 from ipaddress import ip_address, ip_network, IPv6Address, IPv6Network
-from netifaces import AF_INET, AF_INET6, gateways, ifaddresses, interfaces
-from typing import Optional, Sequence, Tuple, Union
+from netifaces import AF_INET, AF_INET6, AF_LINK, gateways, ifaddresses, interfaces
+from typing import Dict, Optional, Sequence, Tuple, Union
 
 import platform
 import trio.socket
@@ -15,7 +15,10 @@ __all__ = (
     "format_socket_address",
     "get_address_of_network_interface",
     "get_all_ipv4_addresses",
+    "get_link_layer_address_mapping",
     "get_socket_address",
+    "is_mac_address_unicast",
+    "is_mac_address_universal",
     "resolve_network_interface_or_address",
 )
 
@@ -192,7 +195,8 @@ def get_address_of_network_interface(value: str, family: int = AF_INET) -> str:
     Parameters:
         value: the name of the network interface
         family: the address family of the interface; one of the `AF_` constants
-            from the `netifaces` module
+            from the `netifaces` module. Use `AF_INET` for the standard IPv4
+            address and `AF_LINK` for the MAC address.
 
     Returns:
         the address of the given network interface
@@ -241,6 +245,20 @@ def get_broadcast_address_of_network_interface(
         return addresses[0]["broadcast"]
     else:
         raise ValueError(f"interface {value} has no broadcast address")
+
+
+def get_link_layer_address_mapping() -> Dict[str, str]:
+    """Returns a dictionary mapping interface names to their corresponding
+    link-layer (MAC) addresses.
+
+    We assume that one interface may have only one link-layer address.
+    """
+    result = {}
+    for iface in interfaces():
+        addresses = ifaddresses(iface)
+        if AF_LINK in addresses:
+            result[iface] = addresses[AF_LINK][0]["addr"]
+    return result
 
 
 def get_socket_address(
@@ -306,6 +324,34 @@ def get_socket_address(
                         break
 
     return host, port
+
+
+def _get_first_byte_of_mac_address(address: str) -> int:
+    """Returns the first byte of a MAC address (specified as colon- or
+    dash-separated hex digits).
+    """
+    for index, ch in enumerate(address):
+        if ch in ("-:"):
+            try:
+                return int(address[:index], 16)
+            except ValueError:
+                raise ValueError("input is not a valid MAC address") from None
+
+    raise ValueError("input is not a valid MAC address")
+
+
+def is_mac_address_unicast(address: str) -> bool:
+    """Returns whether a given MAC address (specified as colon- or dash-separated
+    hex digits) is a unicast MAC address.
+    """
+    return not bool(_get_first_byte_of_mac_address(address) & 0x01)
+
+
+def is_mac_address_universal(address: str) -> bool:
+    """Returns whether a given MAC address (specified as colon-separated
+    hex digits) is a universal, vendor-assigned MAC address.
+    """
+    return not bool(_get_first_byte_of_mac_address(address) & 0x03)
 
 
 def resolve_network_interface_or_address(value: Optional[str]) -> str:
