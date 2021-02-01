@@ -1,6 +1,15 @@
 from pytest import raises
 
-from flockwave.networking import is_mac_address_unicast, is_mac_address_universal
+from flockwave.networking import (
+    canonicalize_mac_address,
+    is_mac_address_unicast,
+    is_mac_address_universal,
+)
+
+
+def test_canonicalize_mac_address():
+    canon = canonicalize_mac_address
+    assert canon("   4C-32-75-9B:66-03   \t\t\n") == "4c:32:75:9b:66:03"
 
 
 def test_is_mac_address_universal():

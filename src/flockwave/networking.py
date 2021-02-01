@@ -8,6 +8,7 @@ import platform
 import trio.socket
 
 __all__ = (
+    "canonicalize_mac_address",
     "create_socket",
     "enable_tcp_keepalive",
     "find_interfaces_with_address",
@@ -21,6 +22,14 @@ __all__ = (
     "is_mac_address_universal",
     "resolve_network_interface_or_address",
 )
+
+
+def canonicalize_mac_address(address: str) -> str:
+    """Returns a canonical representation of a MAC address, with all whitespace
+    stripped, hexadecimal characters converted to lowercase and dashes replaced
+    with colons.
+    """
+    return address.strip().lower().replace("-", ":")
 
 
 def create_socket(socket_type) -> trio.socket.socket:
@@ -257,7 +266,7 @@ def get_link_layer_address_mapping() -> Dict[str, str]:
     for iface in interfaces():
         addresses = ifaddresses(iface)
         if AF_LINK in addresses:
-            result[iface] = addresses[AF_LINK][0]["addr"]
+            result[iface] = canonicalize_mac_address(addresses[AF_LINK][0]["addr"])
     return result
 
 
