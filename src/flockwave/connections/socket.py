@@ -295,11 +295,6 @@ class UDPSocketConnection(
         sock = create_socket(SOCK_DGRAM)
 
         if self._allow_broadcast:
-            if self._broadcast_port is None:
-                self._broadcast_port = self.address[1]
-
-            self.broadcast_address = ("255.255.255.255", self._broadcast_port)
-
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
             if self._broadcast_interface is not None:
                 try:
@@ -324,6 +319,24 @@ class UDPSocketConnection(
             sock.setsockopt(IPPROTO_IP, IP_MULTICAST_IF, inet_aton(multicast_interface))
 
         await self._bind_socket(sock)
+
+        # Assign the broadcast address to this socket if the user hasn't assigned
+        # one yet
+        if self._allow_broadcast:
+            # Note that we need to do this here; by the time we get here, we
+            # already have our definite port number even if originally it was
+            # defined as zero (i.e. the OS should pick one)
+            if self._broadcast_port is None:
+                new_address = sock.getsockname()
+                if isinstance(new_address, tuple) and len(new_address) > 1:
+                    self._broadcast_port = new_address[1]
+
+            # Do not overwrite any user-defined broadcast address
+            if (
+                getattr(self, "broadcast_address", None) is None
+                and self._broadcast_port is not None
+            ):
+                self.broadcast_address = ("255.255.255.255", self._broadcast_port)
 
         return sock
 
