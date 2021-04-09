@@ -286,12 +286,19 @@ def get_socket_address(
         the host and port where the socket is bound to
     """
     if hasattr(sock, "getsockname"):
-        host, port = sock.getsockname()
+        address = sock.getsockname()
     else:
-        host, port = sock
+        address = sock
+
+    if len(address) == 4:
+        # IPv6 addresses?
+        host, port, _, _ = address
+    else:
+        # IPv4 addresses
+        host, port = address
 
     # Canonicalize the value of 'host'
-    if host == "0.0.0.0":
+    if host == "0.0.0.0" or host == "::":
         host = ""
 
     # If host is empty and an address is given, try to find one from
