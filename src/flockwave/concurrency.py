@@ -4,8 +4,8 @@ from collections.abc import Mapping
 from contextlib import asynccontextmanager
 from functools import partial, wraps
 from inspect import iscoroutine, iscoroutinefunction
-from trio import Cancelled, CancelScope, Event, open_nursery, Nursery, WouldBlock, sleep
-from trio_util import MailboxRepeatedEvent
+from trio import Cancelled, CancelScope, Event, Lock, open_nursery, Nursery, WouldBlock, sleep
+from trio_util import RepeatedEvent
 from typing import Any, Callable, Dict, Generic, Iterable, Iterator, TypeVar
 
 __all__ = ("AsyncBundler", "aclosing", "cancellable", "Future", "FutureCancelled")
@@ -124,7 +124,8 @@ class AsyncBundler:
     def __init__(self):
         """Constructor."""
         self._data = set()
-        self._event = MailboxRepeatedEvent()
+        self._event = RepeatedEvent()
+        self._lock = Lock()
 
     def add(self, item: Any) -> None:
         """Adds a single item to the bundle.
@@ -163,11 +164,16 @@ class AsyncBundler:
         """
         it = None
         try:
-            it = self._event.__aiter__()
-            async for _ in it:
-                result = set(self._data)
-                self._data.clear()
-                yield result
+            if self._lock.locked():
+                raise RuntimeError("AsyncBundler can only have one listener")
+
+            async with self._lock:
+                it = self._event.events(repeat_last=True)
+                async for _ in it:
+                    result = set(self._data)
+                    self._data.clear()
+                    if result:
+                        yield result
         finally:
             if it:
                 await it.aclose()

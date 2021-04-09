@@ -10,8 +10,8 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.7"
 blinker = "^1.4"
-trio = ">=0.17.0"
-trio-util = ">=0.2.0"
+trio = ">=0.18.0"
+trio-util = ">=0.5.0"
 netifaces = ">=0.10.9"
 flockwave-parsers = "^1.2.0"
 mido = { version = "^1.2.9", optional = true }
