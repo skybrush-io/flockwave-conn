@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from logging import Logger
 from trio import EndOfChannel
 from trio.abc import Channel
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
 from ..connections import Connection
 
@@ -16,9 +16,7 @@ from .types import Encoder, MessageType, Parser, RawType, RPCRequestHandler
 
 __all__ = ("MessageChannel",)
 
-MYPY = False
-
-if MYPY:
+if TYPE_CHECKING:
     from tinyrpc.dispatch import RPCDispatcher
     from tinyrpc.protocols import RPCProtocol
 

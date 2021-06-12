@@ -4,7 +4,16 @@ from collections.abc import Mapping
 from contextlib import asynccontextmanager
 from functools import partial, wraps
 from inspect import iscoroutine, iscoroutinefunction
-from trio import Cancelled, CancelScope, Event, Lock, open_nursery, Nursery, WouldBlock, sleep
+from trio import (
+    Cancelled,
+    CancelScope,
+    Event,
+    Lock,
+    open_nursery,
+    Nursery,
+    WouldBlock,
+    sleep,
+)
 from trio_util import RepeatedEvent
 from typing import Any, Callable, Dict, Generic, Iterable, Iterator, TypeVar
 
