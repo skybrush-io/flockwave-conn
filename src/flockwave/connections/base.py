@@ -9,7 +9,7 @@ from enum import Enum
 from functools import partial
 from trio import CancelScope, Event, Nursery, TASK_STATUS_IGNORED, wrap_file
 from trio_util import AsyncBool
-from typing import Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, Optional, TypeVar
 
 
 __all__ = (
@@ -178,17 +178,17 @@ class ConnectionBase(Connection):
 
     def __init__(self):
         """Constructor."""
-        self._state = ConnectionState.DISCONNECTED
+        self._state: ConnectionState = ConnectionState.DISCONNECTED
 
         self._is_connected = AsyncBool(False)
         self._is_disconnected = AsyncBool(True)
 
     @property
-    def state(self):
+    def state(self) -> ConnectionState:
         """The state of the connection."""
         return self._state
 
-    def _set_state(self, new_state):
+    def _set_state(self, new_state: ConnectionState) -> None:
         """Sets the state of the connection to a new value and sends the
         appropriate signals.
         """
@@ -220,7 +220,7 @@ class ConnectionBase(Connection):
         ):
             self._is_disconnected.value = False
 
-    async def close(self):
+    async def close(self) -> None:
         """Base implementation of Connection.close() that manages the state of
         the connection correctly.
 
@@ -245,7 +245,7 @@ class ConnectionBase(Connection):
                 ConnectionState.DISCONNECTED if success else ConnectionState.CONNECTED
             )
 
-    async def open(self):
+    async def open(self) -> None:
         """Base implementation of Connection.open() that manages the state
         of the connection correctly.
 
@@ -270,31 +270,37 @@ class ConnectionBase(Connection):
                 ConnectionState.CONNECTED if success else ConnectionState.DISCONNECTED
             )
 
-    async def wait_until_connected(self):
+    async def wait_until_connected(self) -> None:
         """Blocks the execution until the connection becomes connected."""
         await self._is_connected.wait_value(True)
 
-    async def wait_until_disconnected(self):
+    async def wait_until_disconnected(self) -> None:
         """Blocks the execution until the connection becomes disconnected."""
         await self._is_disconnected.wait_value(True)
 
     @abstractmethod
-    async def _open(self):
+    async def _open(self) -> None:
         """Internal implementation of `ConnectionBase.open()`.
 
         Override this method in subclasses to implement how your connection
         is opened. No need to update the state variable from inside this
         method; the caller will do it automatically.
+
+        Make sure that the implementation of this function does not block the
+        main event loop. Use a worker thread if needed.
         """
         raise NotImplementedError
 
     @abstractmethod
-    async def _close(self):
+    async def _close(self) -> None:
         """Internal implementation of `ConnectionBase.close()`.
 
         Override this method in subclasses to implement how your connection
         is closed. No need to update the state variable from inside this
         method; the caller will do it automatically.
+
+        Make sure that the implementation of this function does not block the
+        main event loop. Use a worker thread if needed.
         """
         raise NotImplementedError
 
@@ -320,23 +326,26 @@ class FDConnectionBase(
     def __init__(self):
         """Constructor."""
         super(FDConnectionBase, self).__init__()
-        self._file_handle = None
+        self._file_handle: Optional[int] = None
         self._file_object = None
 
-    def fileno(self):
+    def fileno(self) -> Optional[int]:
         """Returns the underlying file handle of the connection, for sake of
-        compatibility with other file-like objects in Python.
+        compatibility with other file-like objects in Python. Returns `None`
+        if the connection is not open.
         """
         return self._file_handle
 
-    async def flush(self):
+    async def flush(self) -> None:
         """Flushes the data recently written to the connection."""
         if self._file_object is not None:
             await self._file_object.flush()
 
     @property
-    def fd(self):
-        """Returns the underlying file handle of the connection."""
+    def fd(self) -> Optional[int]:
+        """Returns the underlying file handle of the connection. Returns `None`
+        if the connection is not open.
+        """
         return self._file_handle
 
     @property
@@ -344,7 +353,7 @@ class FDConnectionBase(
         """Returns the underlying file-like object of the connection."""
         return self._file_object
 
-    def _attach(self, handle_or_object):
+    def _attach(self, handle_or_object: Any) -> None:
         """Associates a file handle or file-like object to the connection.
         This is the method that derived classes should use whenever the
         connection is associated to a new file handle or file-like object.
@@ -368,7 +377,7 @@ class FDConnectionBase(
                 self, old_handle=old_handle, new_handle=self._file_handle
             )
 
-    def _detach(self):
+    def _detach(self) -> None:
         """Detaches the connection from its current associated file handle
         or file-like object.
         """
@@ -391,16 +400,16 @@ class FDConnectionBase(
         self._file_handle = value
         return True
 
-    def _set_file_object(self, value):
+    def _set_file_object(self, value) -> bool:
         """Setter for the ``_file_object`` property. Derived classes should
         not set ``_file_handle`` or ``_file_object`` directly; they should
         use ``_attach()`` or ``_detach()`` instead.
 
         Parameters:
-            value (Optional[file]): the new file object or ``None`` if the
-                connection is not associated to a file-like object (which
-                may happen even if there is a file handle if the file handle
-                does not have a file-like object representation)
+            value: the new file object or ``None`` if the connection is not
+                associated to a file-like object (which may happen even if there
+                is a file handle if the file handle does not have a file-like
+                object representation)
 
         Returns:
             bool: whether the file object has changed
@@ -446,7 +455,7 @@ class TaskConnectionBase(ConnectionBase):
             self._create_cancel_scope_and_run
         )
 
-    async def _close(self):
+    async def _close(self) -> None:
         if self._cancel_scope:
             scope = self._cancel_scope
             self._cancel_scope = None
@@ -469,7 +478,8 @@ class TaskConnectionBase(ConnectionBase):
 
         await self.close()
 
-    def _run(self, started: Callable[[], None]) -> None:
+    @abstractmethod
+    async def _run(self, started: Callable[[], None]) -> None:
         """Runs the main task of the connection.
 
         Must be overridden in subclasses. The implementation must ensure that

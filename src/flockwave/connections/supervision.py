@@ -2,9 +2,9 @@ import logging
 
 from dataclasses import dataclass
 from functools import partial
-from trio import CancelScope, open_memory_channel, open_nursery, sleep
+from trio import CancelScope, Nursery, open_memory_channel, open_nursery, sleep
 from trio_util import wait_any
-from typing import Awaitable, Callable, Optional
+from typing import Awaitable, Callable, Dict, Literal, Optional, TypeVar, Union
 
 from .base import Connection, ListenerConnection
 
@@ -19,9 +19,12 @@ __all__ = (
 )
 
 
-SupervisionPolicy = Callable[[Connection, Exception], Optional[float]]
+SupervisionPolicy = Callable[
+    [Connection, Union[Literal["open"], Literal["close"], Exception]],
+    Optional[Union[float, Literal[False]]],
+]
 ConnectionTask = Callable[[Connection], Awaitable[None]]
-
+T = TypeVar("T")
 
 log = logging.getLogger(__name__.rpartition(".")[0])
 
@@ -56,8 +59,8 @@ class ConnectionSupervisor:
         """
         self._policy = policy or default_policy
 
-        self._entries = {}
-        self._nursery = None
+        self._entries: Dict[Connection, ConnectionSupervisor.Entry] = {}
+        self._nursery: Optional[Nursery] = None
 
         self._tx_queue, self._rx_queue = open_memory_channel(32)
 
@@ -88,7 +91,7 @@ class ConnectionSupervisor:
         """
         await self._tx_queue.send(("remove", (connection,)))
 
-    async def run(self):
+    async def run(self) -> None:
         """Main loop of the connection supervisor."""
         async with open_nursery() as nursery:
             self._nursery = nursery
@@ -97,7 +100,7 @@ class ConnectionSupervisor:
             finally:
                 self._nursery = None
 
-    async def _run_main_loop(self):
+    async def _run_main_loop(self) -> None:
         while True:
             command, args = await self._rx_queue.receive()
 
@@ -110,14 +113,11 @@ class ConnectionSupervisor:
                 if entry is not None:
                     entry.cancel()
 
-    async def _close(self, connection):
+    async def _close(self, connection: Connection):
         """Closes the given connection and stops monitoring it.
 
         Returns when the connection was closed successfully.
         """
-        connection.disconnected.disconnect(
-            self._on_connection_disconnected, sender=connection
-        )
         await connection.close()
 
     async def supervise(
@@ -226,25 +226,25 @@ async def supervise(
             raise ValueError(f"invalid supervision policy action: {action}")
 
 
-def _constant(x):
+def _constant(x: T) -> Callable[..., T]:
     """Function factory that returns a function that accepts an arbitrary
     number of arguments and always returns the same constant.
 
     Parameters:
-        x (object): the constant to return
+        x: the constant to return
 
     Returns:
         callable: a function that always returns the given constant,
             irrespectively of its input
     """
 
-    def func(*args, **kwds):
+    def func(*args, **kwds) -> T:
         return x
 
     return func
 
 
-def constant_delay_policy(seconds):
+def constant_delay_policy(seconds: float) -> SupervisionPolicy:
     """Supervision policy factory that creates a supervision policy that
     waits a given number of seconds before reconnecting.
     """
@@ -252,4 +252,4 @@ def constant_delay_policy(seconds):
 
 
 default_policy = constant_delay_policy(1)
-no_reconnection_policy = _constant(False)
+no_reconnection_policy: SupervisionPolicy = _constant(False)

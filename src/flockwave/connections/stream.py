@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from trio.abc import Stream
-from typing import Callable, Optional
+from typing import Awaitable, Callable, Optional
 
 from .base import (
     ConnectionBase,
@@ -28,7 +28,7 @@ class StreamConnectionBase(
                 stream that the connection will wrap.
         """
         super().__init__()
-        self._stream = None
+        self._stream: Optional[Stream] = None
 
     @abstractmethod
     async def _create_stream(self) -> Stream:
@@ -39,11 +39,11 @@ class StreamConnectionBase(
         """
         raise NotImplementedError
 
-    async def _open(self):
+    async def _open(self) -> None:
         """Opens the stream."""
         self._stream = await self._create_stream()
 
-    async def _close(self):
+    async def _close(self) -> None:
         """Closes the stream."""
         try:
             if self._stream:
@@ -60,7 +60,7 @@ class StreamConnectionBase(
                 pick a reasonable default.
         """
         try:
-            data = await self._stream.receive_some(size)
+            data: bytes = await self._stream.receive_some(size)  # type: ignore
         except Exception as ex:
             # read error, close the stream
             try:
@@ -89,7 +89,7 @@ class StreamConnection(StreamConnectionBase):
     constructed on-demand from a factory function.
     """
 
-    def __init__(self, factory: Callable[[], Stream]):
+    def __init__(self, factory: Callable[[], Awaitable[Stream]]):
         """Constructor.
 
         Parameters:

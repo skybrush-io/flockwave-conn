@@ -12,12 +12,12 @@ class UnknownConnectionTypeError(RuntimeError):
     unknown type.
     """
 
-    def __init__(self, connection_type):
+    def __init__(self, connection_type: str):
         """Constructor.
 
         Parameters:
             connection_type (str): the connection type that the user tried
                 to construct.
         """
-        message = "Unknown connection type: {0!r}".format(connection_type)
+        message = f"Unknown connection type: {connection_type!r}"
         super(UnknownConnectionTypeError, self).__init__(message)

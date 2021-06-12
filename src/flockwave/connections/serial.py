@@ -34,7 +34,7 @@ class SerialPortStreamBase(Stream):
         """
         from serial import Serial
 
-        return cls(Serial(timeout=0, *args, **kwds))
+        return cls(Serial(timeout=0, *args, **kwds))  # type: ignore
 
 
 class ConflictDetector:
@@ -276,7 +276,9 @@ class SerialPortConnection(StreamConnectionBase):
 
         if self._path:
             match = re.match(
-                "^(?P<vid>[0-9a-f]{4}):(?P<pid>[0-9a-f]{4})$", self._path, re.IGNORECASE
+                "^(?P<vid>[0-9a-f]{4}):(?P<pid>[0-9a-f]{4})$",
+                str(self._path),
+                re.IGNORECASE,
             )
             if match:
                 # path is most likely a USB vendor-product ID pair
@@ -334,15 +336,15 @@ class SerialPortConnection(StreamConnectionBase):
         See the constructor to learn more about the syntax of these arguments.
         """
         try:
-            vid = int(str(vid), 16) if vid is not None else None
-            pid = int(str(pid), 16) if pid is not None else None
+            vid_as_int = int(str(vid), 16) if vid is not None else None
+            pid_as_int = int(str(pid), 16) if pid is not None else None
         except ValueError:
             return False
 
-        if vid is not None and port_info.vid != vid:
+        if vid_as_int is not None and port_info.vid != vid_as_int:
             return False
 
-        if pid is not None and port_info.pid != pid:
+        if pid_as_int is not None and port_info.pid != pid_as_int:
             return False
 
         if serial_number is not None and port_info.serial_number != serial_number:

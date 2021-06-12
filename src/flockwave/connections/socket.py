@@ -20,7 +20,7 @@ from trio.socket import (
     SO_BROADCAST,
     SocketType,
 )
-from typing import Optional, Tuple, Union
+from typing import cast, Optional, Tuple, Union
 
 from .base import (
     ConnectionBase,
@@ -55,23 +55,31 @@ class InternetAddressMixin:
     of an IP address and a port."""
 
     def __init__(self):
-        self._address = None
+        self._address: Optional[IPAddressAndPort] = None
 
     @property
-    def address(self):
+    def address(self) -> Optional[IPAddressAndPort]:
         """Returns the IP address and port of the socket, in the form of a
         tuple.
         """
         return self._address
 
     @property
-    def ip(self):
-        """Returns the IP address that the socket is bound to."""
+    def ip(self) -> str:
+        """Returns the IP address that the socket is bound to.
+
+        Raises:
+            RuntimeError: if the socket is not bound to an IP address
+        """
         return self.address[0]
 
     @property
-    def port(self):
-        """Returns the port that the socket is bound to."""
+    def port(self) -> int:
+        """Returns the port that the socket is bound to.
+
+        Raises:
+            RuntimeError: if the socket is not bound to an IP address
+        """
         return self.address[1]
 
 
@@ -81,10 +89,10 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
     def __init__(self):
         ConnectionBase.__init__(self)
         InternetAddressMixin.__init__(self)
-        self._socket = None
+        self._socket: Optional[SocketType] = None
 
     @InternetAddressMixin.address.getter
-    def address(self):
+    def address(self) -> Optional[IPAddressAndPort]:
         """Returns the IP address and port of the socket, in the form of a
         tuple.
         """
@@ -97,7 +105,7 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
                 return super().address
         else:
             # Ask the socket for its address
-            return self._socket.getsockname()
+            return self._socket.getsockname()  # type: ignore
 
     @property
     def socket(self):
@@ -106,7 +114,7 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
 
     async def _close(self):
         """Closes the socket connection."""
-        self._socket.close()
+        self._socket.close()  # type: ignore
         self._socket = None
 
     @abstractmethod
@@ -142,7 +150,7 @@ class TCPStreamConnection(StreamConnectionBase, InternetAddressMixin):
         """
         StreamConnectionBase.__init__(self)
         InternetAddressMixin.__init__(self)
-        self._address = (host or "", port or 0)
+        self._address: IPAddressAndPort = (host or "", port or 0)
 
     async def _create_stream(self) -> SocketStream:
         """Creates a new non-blocking reusable TCP socket and connects it to
@@ -211,7 +219,7 @@ class TCPListenerConnection(
             sock.listen(self._backlog)
         else:
             sock.listen()
-        return sock
+        return cast(SocketType, sock)
 
     async def _bind_socket(self, sock) -> None:
         """Binds the given TCP socket to the address where it should listen for
@@ -220,7 +228,7 @@ class TCPListenerConnection(
         await sock.bind(self._address)
 
     async def accept(self) -> IncomingTCPStreamConnection:
-        client_socket, address = await self._socket.accept()
+        client_socket, address = await self._socket.accept()  # type: ignore
         connection = IncomingTCPStreamConnection(address, client_socket)
         await connection.open()
         return connection
@@ -298,7 +306,7 @@ class UDPSocketConnection(
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
             if self._broadcast_interface is not None:
                 try:
-                    from socket import IP_BROADCAST_IF
+                    from socket import IP_BROADCAST_IF  # type: ignore
                 except ImportError:
                     raise RuntimeError(
                         "this OS does not support setting the broadcast interface of a socket"
@@ -340,13 +348,15 @@ class UDPSocketConnection(
 
         return sock
 
-    async def _bind_socket(self, sock):
+    async def _bind_socket(self, sock) -> None:
         """Binds the given UDP socket to the address where it should listen for
         incoming UDP packets.
         """
         await sock.bind(self._address)
 
-    async def read(self, size: int = 4096, flags: int = 0):
+    async def read(
+        self, size: int = 4096, flags: int = 0
+    ) -> Tuple[bytes, Optional[IPAddressAndPort]]:
         """Reads some data from the connection.
 
         Parameters:
@@ -360,7 +370,7 @@ class UDPSocketConnection(
                 read.
         """
         if self._socket is not None:
-            data, addr = await self._socket.recvfrom(size, flags)
+            data, addr = await self._socket.recvfrom(size, flags)  # type: ignore
             if not data:
                 # Remote side closed connection
                 await self.close()
@@ -377,8 +387,8 @@ class UDPSocketConnection(
                 or ``sendto()`` call; see the UNIX manual for details.
         """
         if self._socket is not None:
-            data, address = data
-            await self._socket.sendto(data, flags, address)
+            buf, address = data
+            await self._socket.sendto(buf, flags, address)  # type: ignore
         else:
             raise RuntimeError("connection does not have a socket")
 
@@ -402,14 +412,14 @@ class BroadcastUDPSocketConnection(UDPSocketConnection):
 
     can_send = False
 
-    def __init__(self, interface=None, port=0, **kwds):
+    def __init__(self, interface: Optional[str] = None, port: int = 0, **kwds):
         """Constructor.
 
         Parameters:
-            interface (str): name of the network interface whose broadcast
+            interface: name of the network interface whose broadcast
                 address to bind to, or a subnet in slashed notation whose
                 broadcast address to bind to
-            port (int): the port number that the socket will bind (or
+            port: the port number that the socket will bind (or
                 connect) to. Zero means that the socket will choose a random
                 ephemeral port number on its own.
 
@@ -442,18 +452,24 @@ class MulticastUDPSocketConnection(UDPSocketConnection):
 
     can_send = False
 
-    def __init__(self, group=None, port=0, interface=None, **kwds):
+    def __init__(
+        self,
+        group: Optional[str] = None,
+        port: int = 0,
+        interface: Optional[str] = None,
+        **kwds,
+    ):
         """Constructor.
 
         Parameters:
-            group (str): the IP address of the multicast group that the socket
-                will bind to.
-            port (int): the port number that the socket will bind (or
-                connect) to. Zero means that the socket will choose a random
-                ephemeral port number on its own.
-            interface (Optional[str]): name of the network interface to bind
-                the socket to. `None` means to bind to the default network
-                interface where multicast is supported.
+            group: the IP address of the multicast group that the socket will
+                bind to.
+            port: the port number that the socket will bind (or connect) to. Zero
+                means that the socket will choose a random ephemeral port number
+                on its own.
+            interface: name of the network interface to bind the socket to.
+                `None` means to bind to the default network interface where
+                multicast is supported.
 
         Keyword arguments:
             host (str): convenience alias for `group` so we can use this class
@@ -484,6 +500,8 @@ class MulticastUDPSocketConnection(UDPSocketConnection):
         else:
             address = "0.0.0.0"
 
+        assert self._address is not None
+
         host, _ = self._address
         req = struct.pack("4s4s", inet_aton(host), inet_aton(address))
         sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, req)
@@ -510,12 +528,10 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
         """Constructor.
 
         Parameters:
-            network (Union[IPv4Network, IPv6Network, str]): an IPv4 or IPv6 network
-                object that describes the subnet that the connection tries to bind
-                to, or its string representation
-            port (int): the port number to which the newly created sockets will
-                be bound to. Zero means to pick an ephemeral port number
-                randomly.
+            network: an IPv4 or IPv6 network object that describes the subnet
+                that the connection tries to bind to, or its string representation
+            port: the port number to which the newly created sockets will be
+                bound to. Zero means to pick an ephemeral port number randomly.
 
         Keyword arguments:
             path (str): convenience alias for `network` so we can use this class
@@ -532,7 +548,7 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
         self._broadcast_address = None
         self._network = ip_network(network)
 
-    async def _bind_socket(self, sock):
+    async def _bind_socket(self, sock) -> None:
         """Binds the given UDP socket to the address where it should listen for
         incoming UDP packets.
         """
@@ -570,7 +586,7 @@ class UnixDomainSocketConnection(StreamConnectionBase):
         super().__init__()
         self._path = path
 
-    async def _create_stream(self):
+    async def _create_stream(self) -> SocketStream:
         try:
             from trio.socket import AF_UNIX
         except ImportError:

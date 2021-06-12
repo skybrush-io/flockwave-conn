@@ -8,7 +8,7 @@ specification formats.
 from contextlib import contextmanager
 from functools import partial
 from urllib.parse import parse_qs, urlparse
-from typing import Any, Dict, Union
+from typing import Any, Dict, Iterator, Union
 
 from .errors import UnknownConnectionTypeError
 
@@ -53,8 +53,9 @@ class Factory:
 
         # Parse the parameters into a dict, turning values into integers
         # where applicable
-        parameters = parse_qs(parts.query) if parts.query else {}
-        for k, v in parameters.items():
+        raw_parameters = parse_qs(parts.query) if parts.query else {}
+        parameters: Dict[str, Union[int, str]] = {}
+        for k, v in raw_parameters.items():
             if len(v) > 1:
                 raise ValueError("repeated parameters are not supported")
             v = v[0]
@@ -194,7 +195,7 @@ class Factory:
         del self._registry[name]
 
     @contextmanager
-    def use(self, klass, name: str):
+    def use(self, klass, name: str) -> Iterator[None]:
         """Context manager temporarily registers the given class for this factory
         with the given name and unregisters it when the context is exited.
         """

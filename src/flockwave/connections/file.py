@@ -1,11 +1,11 @@
 """File-based connection object."""
 
-from __future__ import absolute_import, print_function
+from os import PathLike
+from trio import open_file
+from typing import Union
 
 from .base import FDConnectionBase, ConnectionState
 from .factory import create_connection
-
-from trio import open_file
 
 __all__ = ("FileConnection",)
 
@@ -16,14 +16,18 @@ class FileConnection(FDConnectionBase):
     file-like object.
     """
 
-    def __init__(self, path, mode="rb", autoflush=False):
+    def __init__(
+        self,
+        path: Union[bytes, str, PathLike],
+        mode: str = "rb",
+        autoflush: bool = False,
+    ):
         """Constructor.
 
         Parameters:
-            path (str): path to the file to read the incoming data from
-            mode (str): the mode to open the file with
-            autoflush (bool): whether to flush the file automatically after
-                each write
+            path: path to the file to read the incoming data from
+            mode: the mode to open the file with
+            autoflush: whether to flush the file automatically after each write
         """
         super(FileConnection, self).__init__()
 
@@ -31,7 +35,7 @@ class FileConnection(FDConnectionBase):
         self._path = path
         self._mode = mode
 
-    async def close(self):
+    async def close(self) -> None:
         """Closes the file connection."""
         if self.state == ConnectionState.DISCONNECTED:
             return
@@ -41,7 +45,7 @@ class FileConnection(FDConnectionBase):
         self._detach()
         self._set_state(ConnectionState.DISCONNECTED)
 
-    async def open(self):
+    async def open(self) -> None:
         """Opens the file connection."""
         if self.state in (ConnectionState.CONNECTED, ConnectionState.CONNECTING):
             return
