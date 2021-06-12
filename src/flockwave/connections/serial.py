@@ -262,6 +262,7 @@ class SerialPortConnection(StreamConnectionBase):
         self._path = path
         self._baud = baud
         self._stopbits = stopbits
+        self._resolved_path: Optional[str] = None
 
         self._usb_properties = {
             "vid": vid,
@@ -270,6 +271,14 @@ class SerialPortConnection(StreamConnectionBase):
             "product": product,
             "serial_number": serial_number,
         }
+
+    @property
+    def address(self) -> Optional[str]:
+        """The real path of the serial port that the connection was resolved to
+        (after matching USB vendor and product IDs), or `None` if the serial
+        port is not connected.
+        """
+        return self._resolved_path
 
     async def _create_stream(self) -> Stream:
         from serial import STOPBITS_ONE, STOPBITS_ONE_POINT_FIVE, STOPBITS_TWO
@@ -300,9 +309,17 @@ class SerialPortConnection(StreamConnectionBase):
         else:
             raise ValueError("unsupported stop bit count: {0!r}".format(self._stopbits))
 
+        self._resolved_path = f"<fd: #{path}>" if isinstance(path, int) else str(path)
+
         return await SerialPortStream.create(
             path, baudrate=self._baud, stopbits=stopbits
         )
+
+    async def _close(self) -> None:
+        try:
+            await super()._close()
+        finally:
+            self._resolved_path = None
 
     def _find_matching_usb_device(self, **kwds) -> str:
         """Finds a USB serial port that matches the given properties (vendor ID,
