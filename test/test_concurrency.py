@@ -55,7 +55,7 @@ def test_delayed():
         delayed(-3)
 
     assert delayed(0)(sync_func) == sync_func
-    assert delayed(0, sync_func) == sync_func
+    assert delayed(0, sync_func) == sync_func  # type: ignore
 
 
 async def test_race(autojump_clock):
@@ -254,7 +254,7 @@ class TestCancellableTaskGroup:
 
 class TestFuture:
     def test_future_base_state(self):
-        future = Future()
+        future: Future[int] = Future()
 
         assert not future.cancelled()
         assert not future.done()
@@ -264,7 +264,7 @@ class TestFuture:
             future.exception()
 
     async def test_resolution_with_value(self, nursery):
-        future = Future()
+        future: Future[int] = Future()
 
         async def resolver():
             future.set_result(42)
@@ -278,7 +278,7 @@ class TestFuture:
         assert future.exception() is None
 
     async def test_resolution_with_value_twice(self, nursery):
-        future = Future()
+        future: Future[int] = Future()
 
         async def resolver(task_status):
             future.set_result(42)
@@ -290,7 +290,7 @@ class TestFuture:
             await nursery.start(resolver)
 
     async def test_resolution_with_exception(self, nursery):
-        future = Future()
+        future: Future[str] = Future()
 
         async def resolver():
             future.set_exception(ValueError("test"))
@@ -308,7 +308,7 @@ class TestFuture:
             future.result()
 
     async def test_cancellation(self, nursery):
-        future = Future()
+        future: Future[str] = Future()
 
         async def resolver(task_status):
             future.cancel()
@@ -323,13 +323,13 @@ class TestFuture:
             await future.wait()
 
         with raises(FutureCancelled):
-            await future.result()
+            future.result()
 
         with raises(FutureCancelled):
-            await future.exception()
+            future.exception()
 
     async def test_trio_cancellation(self, autojump_clock, nursery):
-        future = Future()
+        future: Future[int] = Future()
 
         async def resolver():
             await sleep(10)

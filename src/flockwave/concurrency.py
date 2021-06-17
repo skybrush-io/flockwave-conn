@@ -1,6 +1,5 @@
 """Concurrency-related utility functions."""
 
-from collections.abc import Mapping
 from contextlib import asynccontextmanager
 from functools import partial, wraps
 from inspect import iscoroutine, iscoroutinefunction
@@ -15,12 +14,30 @@ from trio import (
     sleep,
 )
 from trio_util import RepeatedEvent
-from typing import Any, Callable, Dict, Generic, Iterable, Iterator, TypeVar
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Union,
+    Tuple,
+    TypeVar,
+)
 
 __all__ = ("AsyncBundler", "aclosing", "cancellable", "Future", "FutureCancelled")
 
 
 T = TypeVar("T")
+T2 = TypeVar("T2")
 
 
 class aclosing:
@@ -58,7 +75,12 @@ def _identity(obj: Any) -> Any:
     return obj
 
 
-def delayed(seconds: float, fn=None, *, ensure_async: bool = False):
+def delayed(
+    seconds: float,
+    fn: Optional[Union[Callable[..., T], Callable[..., Awaitable[T]]]] = None,
+    *,
+    ensure_async: bool = False
+) -> Union[Callable[..., T], Callable[..., Awaitable[T]]]:
     """Decorator or decorator factory that delays the execution of a
     synchronous function, coroutine or coroutine-returning function with a
     given number of seconds.
@@ -115,7 +137,7 @@ def delayed(seconds: float, fn=None, *, ensure_async: bool = False):
     return decorated
 
 
-class AsyncBundler:
+class AsyncBundler(Generic[T]):
     """Asynchronous object that holds a bundle and supports the following
     operations:
 
@@ -130,13 +152,17 @@ class AsyncBundler:
     the bundle asynchronously and takes all items from it in each iteration.
     """
 
+    _data: Set[T]
+    _event: RepeatedEvent
+    _lock: Lock
+
     def __init__(self):
         """Constructor."""
         self._data = set()
         self._event = RepeatedEvent()
         self._lock = Lock()
 
-    def add(self, item: Any) -> None:
+    def add(self, item: T) -> None:
         """Adds a single item to the bundle.
 
         Parameters:
@@ -145,7 +171,7 @@ class AsyncBundler:
         self._data.add(item)
         self._event.set()
 
-    def add_many(self, items: Iterable[Any]) -> None:
+    def add_many(self, items: Iterable[T]) -> None:
         """Adds multiple items to the bundle from an iterable.
 
         Parameters:
@@ -160,14 +186,14 @@ class AsyncBundler:
         self._data.clear()
 
     @asynccontextmanager
-    async def iter(self):
+    async def iter(self) -> AsyncIterator[AsyncGenerator[Set[T], None]]:
+        it = self.__aiter__()
         try:
-            it = self.__aiter__()
             yield it
         finally:
             await it.aclose()
 
-    async def __aiter__(self):
+    async def __aiter__(self) -> AsyncGenerator[Set[T], None]:
         """Asynchronously iterates over non-empty batches of items that
         were added to the set.
         """
@@ -240,6 +266,11 @@ class Future(Generic[T]):
     complete.
     """
 
+    _cancelled: bool
+    _error: Optional[Exception]
+    _event: Event
+    _value: Optional[T]
+
     def __init__(self):
         self._event = Event()
         self._cancelled = False
@@ -261,7 +292,7 @@ class Future(Generic[T]):
 
         return True
 
-    async def call(self, func, *args, **kwds):
+    async def call(self, func: Callable[..., Awaitable[T]], *args, **kwds) -> None:
         """Calls the given function, waits for its result and sets the result
         in the future.
 
@@ -301,7 +332,7 @@ class Future(Generic[T]):
             WouldBlock: if the result of the future is not yet available
         """
         self._check_done_or_cancelled()
-        return self._error
+        return self._error  # type: ignore
 
     def result(self) -> T:
         """Returns the result of the future.
@@ -320,7 +351,7 @@ class Future(Generic[T]):
         if self._error:
             raise self._error
         else:
-            return self._value
+            return self._value  # type: ignore
 
     def set_exception(self, exception: Exception) -> None:
         """Marks the future as _done_ and sets an exception.
@@ -370,7 +401,21 @@ class Future(Generic[T]):
             raise RuntimeError("future is already done")
 
 
-class FutureMap(Mapping, Generic[T]):
+class _FutureMapContext(Generic[T]):
+    def __init__(self, future: Future[T], disposer: Callable[[], None]):
+        self._disposer = disposer
+        self._future = future
+
+    async def __aenter__(self):
+        return self._future
+
+    async def __aexit__(self, exc_type, exc_value, tb):
+        self._disposer()
+        if exc_type is None:
+            await self._future.wait()
+
+
+class FutureMap(Mapping[str, Future[T]]):
     """Dictionary that maps arbitrary string keys to futures that are resolved
     to concrete values at a later time.
 
@@ -392,18 +437,8 @@ class FutureMap(Mapping, Generic[T]):
     ```
     """
 
-    class Context:
-        def __init__(self, future: Future[T], disposer: Callable[[], None]):
-            self._disposer = disposer
-            self._future = future
-
-        async def __aenter__(self):
-            return self._future
-
-        async def __aexit__(self, exc_type, exc_value, tb):
-            self._disposer()
-            if exc_type is None:
-                await self._future.wait()
+    _factory: Callable[[], Future[T]]
+    _futures: Dict[str, Future[T]]
 
     def __init__(self, factory: Callable[[], Future[T]] = Future[T]):
         """Constructor.
@@ -424,7 +459,7 @@ class FutureMap(Mapping, Generic[T]):
     def __len__(self) -> int:
         return len(self._futures)
 
-    def _dispose_future(self, id: str, future: Future) -> None:
+    def _dispose_future(self, id: str, future: Future[T]) -> None:
         if not future.done():
             future.cancel()
 
@@ -432,7 +467,7 @@ class FutureMap(Mapping, Generic[T]):
         if existing_future is future:
             del self._futures[id]
 
-    def new(self, id: str, strict: bool = False) -> "FutureMap.Context":
+    def new(self, id: str, strict: bool = False) -> _FutureMapContext[T]:
         old_future = self._futures.get(id)
 
         if old_future:
@@ -442,15 +477,15 @@ class FutureMap(Mapping, Generic[T]):
                 self._dispose_future(id, old_future)
 
         self._futures[id] = future = self._factory()
-        return self.Context(future, partial(self._dispose_future, id, future))
+        return _FutureMapContext(future, partial(self._dispose_future, id, future))
 
 
-async def race(funcs: Dict[str, Callable[[], Any]]):
+async def race(funcs: Dict[str, Callable[[], T]]) -> Tuple[str, T]:
     """Run multiple async functions concurrently and wait for at least one of
     them to complete. Return the key corresponding to the function and the
     result of the function as well.
     """
-    holder = []
+    holder: List[Tuple[str, T]] = []
 
     async with open_nursery() as nursery:
         cancel = nursery.cancel_scope.cancel
@@ -461,14 +496,19 @@ async def race(funcs: Dict[str, Callable[[], Any]]):
     return holder[0]
 
 
-def _cancel_and_set_result(cancel, holder, key, value):
+def _cancel_and_set_result(
+    cancel: Callable[[], None], holder: List[Tuple[str, T]], key: str, value: T
+) -> None:
     holder.append((key, value))
     cancel()
 
 
-async def _wait_and_call(f1, f2) -> None:
+async def _wait_and_call(f1: Callable[[], Awaitable[T]], f2: Callable[[T], T2]) -> T2:
     """Call an async function f1() and wait for its result. Call synchronous
     function `f2()` with the result of `f1()` when `f1()` returns.
+
+    Returns:
+        the return value of f2
     """
     result = await f1()
-    f2(result)
+    return f2(result)
