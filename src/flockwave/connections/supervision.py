@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from functools import partial
 from trio import CancelScope, Nursery, open_memory_channel, open_nursery, sleep
 from trio_util import wait_any
-from typing import Awaitable, Callable, Dict, Literal, Optional, TypeVar, Union
+from typing import Awaitable, Callable, Dict, Optional, TypeVar, Union
 
 from .base import Connection, ListenerConnection
 
@@ -20,8 +20,8 @@ __all__ = (
 
 
 SupervisionPolicy = Callable[
-    [Connection, Union[Literal["open"], Literal["close"], Exception]],
-    Optional[Union[float, Literal[False]]],
+    [Connection, Union[str, Exception]],
+    Optional[Union[float, bool]],
 ]
 ConnectionTask = Callable[[Connection], Awaitable[None]]
 T = TypeVar("T")
