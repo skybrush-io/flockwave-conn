@@ -101,6 +101,8 @@ class ConnectionSupervisor:
                 self._nursery = None
 
     async def _run_main_loop(self) -> None:
+        assert self._nursery is not None
+
         while True:
             command, args = await self._rx_queue.receive()
 
@@ -121,7 +123,10 @@ class ConnectionSupervisor:
         await connection.close()
 
     async def supervise(
-        self, connection: Connection, task: ConnectionTask, policy: SupervisionPolicy
+        self,
+        connection: Connection,
+        task: Optional[ConnectionTask] = None,
+        policy: Optional[SupervisionPolicy] = None,
     ) -> None:
         """Opens the given connection and supervises it such that it is
         reopened when the connection is connected.
@@ -150,6 +155,8 @@ class ConnectionSupervisor:
         an infinite loop and spawns the given task for every accepted incoming
         connection.
         """
+        assert self._nursery is not None
+
         try:
             while True:
                 client = await connection.accept()
