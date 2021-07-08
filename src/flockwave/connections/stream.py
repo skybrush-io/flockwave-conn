@@ -81,7 +81,7 @@ class StreamConnectionBase(
 
         The function will block until all the data has been sent.
         """
-        await self._stream.send_all(data)
+        await self._stream.send_all(data)  # type: ignore
 
 
 class StreamConnection(StreamConnectionBase):

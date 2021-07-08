@@ -41,10 +41,11 @@ from flockwave.networking import (
 )
 
 __all__ = (
-    "BroadcastUDPSocketConnection",
-    "MulticastUDPSocketConnection",
+    "BroadcastUDPListenerConnection",
+    "MulticastUDPListenerConnection",
     "TCPListenerConnection",
     "TCPStreamConnection",
+    "UDPListenerConnection",
     "UDPSocketConnection",
     "UnixDomainSocketConnection",
 )
@@ -71,7 +72,10 @@ class InternetAddressMixin:
         Raises:
             RuntimeError: if the socket is not bound to an IP address
         """
-        return self.address[0]
+        if self.address:
+            return self.address[0]
+        else:
+            raise RuntimeError("socket is not bound to an IP address")
 
     @property
     def port(self) -> int:
@@ -80,7 +84,10 @@ class InternetAddressMixin:
         Raises:
             RuntimeError: if the socket is not bound to an IP address
         """
-        return self.address[1]
+        if self.address:
+            return self.address[1]
+        else:
+            raise RuntimeError("socket is not bound to an IP address")
 
 
 class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
@@ -237,10 +244,92 @@ class TCPListenerConnection(
 @create_connection.register("udp")
 class UDPSocketConnection(
     SocketConnectionBase,
+    ReadableConnection[bytes],
+    WritableConnection[bytes],
+):
+    """Connection object that uses a UDP socket that listens on an arbitrary
+    IP address and port and is connected to a specific target IP address and port.
+    """
+
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        **kwds,
+    ):
+        """Constructor.
+
+        Parameters:
+            host: the IP address or hostname that the socket will connect to
+            port: the port number that the socket will connect to
+        """
+        super().__init__()
+        self._address = host, port
+
+    async def _create_and_open_socket(self):
+        """Creates a new non-blocking reusable UDP socket that is not bound
+        anywhere yet.
+        """
+        sock = create_socket(SOCK_DGRAM)
+        await self._connect_socket(sock)
+        return sock
+
+    async def _connect_socket(self, sock) -> None:
+        """Binds the given UDP socket to the address where it should send the
+        packets to.
+        """
+        await sock.connect(self._address)
+
+    async def read(self, size: int = 4096, flags: int = 0) -> bytes:
+        """Reads an incoming UDP packet from the connection.
+
+        Parameters:
+            size: the maximum number of bytes to return
+            flags: flags to pass to the underlying ``recvfrom()`` call;
+                see the UNIX manual for details
+
+        Returns:
+            (bytes, tuple): the received data and the address it was
+                received from, or ``(b"", None)`` if there was nothing to
+                read.
+        """
+        if self._socket is not None:
+            data = await self._socket.recv(size, flags)  # type: ignore
+            if not data:
+                # Remote side closed connection
+                await self.close()
+            return data
+        else:
+            return b""
+
+    async def write(self, data: bytes, flags: int = 0) -> None:
+        """Writes the given data to the socket connection.
+
+        Parameters:
+            data: the bytes to write
+            flags: additional flags to pass to the underlying ``send()``
+                call; see the UNIX manual for details.
+        """
+        if self._socket is not None:
+            await self._socket.send(data, flags)  # type: ignore
+        else:
+            raise RuntimeError("connection does not have a socket")
+
+
+@create_connection.register("udp-listen")
+class UDPListenerConnection(
+    SocketConnectionBase,
     ReadableConnection[Tuple[bytes, IPAddressAndPort]],
     WritableConnection[Tuple[bytes, IPAddressAndPort]],
 ):
-    """Connection object that uses a UDP socket."""
+    """Connection object that uses a UDP socket that listens on a specific
+    IP address and port.
+
+    The socket can also be used for sending data to arbitrary IP addresses and
+    ports. However, this means that the objects being sent on this socket are
+    actually tuples containing the raw data _and_ the address to send the data
+    to.
+    """
 
     def __init__(
         self,
@@ -396,14 +485,14 @@ class UDPSocketConnection(
 @create_connection.register("udp-broadcast")
 def _create_udp_broadcast_connection(*args, **kwds):
     """Helper function that creates a UDP broadcast connection with
-    UDPSocketConnection_.
+    UDPListenerConnection_.
     """
     kwds["allow_broadcast"] = True
-    return UDPSocketConnection(*args, **kwds)
+    return UDPListenerConnection(*args, **kwds)
 
 
 @create_connection.register("udp-broadcast-in")
-class BroadcastUDPSocketConnection(UDPSocketConnection):
+class BroadcastUDPListenerConnection(UDPListenerConnection):
     """Connection object that binds to the broadcast address of a given
     subnet or a given interface and listens for incoming packets from there.
 
@@ -444,7 +533,7 @@ class BroadcastUDPSocketConnection(UDPSocketConnection):
 
 
 @create_connection.register("udp-multicast")
-class MulticastUDPSocketConnection(UDPSocketConnection):
+class MulticastUDPListenerConnection(UDPListenerConnection):
     """Connection object that uses a multicast UDP socket.
 
     The connection cannot be used for sending packets.
@@ -510,10 +599,10 @@ class MulticastUDPSocketConnection(UDPSocketConnection):
 
 
 @create_connection.register("udp-subnet")
-class SubnetBindingUDPSocketConnection(UDPSocketConnection):
+class SubnetBindingUDPListenerConnection(UDPListenerConnection):
     """Connection object that enumerates the IP addresses of the network
-    interfaces and creates a UDP or TCP socket connection bound to the
-    network interface that is within a given subnet.
+    interfaces and creates a UDP listener connection bound to the network
+    interface that is within a given subnet.
 
     If there are multiple network interfaces that match the given subnet,
     the connection binds to the first one it finds.
@@ -555,6 +644,9 @@ class SubnetBindingUDPSocketConnection(UDPSocketConnection):
         interfaces = find_interfaces_in_network(self._network)
         if not interfaces:
             raise ConnectionError("no network interface in the given network")
+
+        if self._address is None:
+            raise RuntimeError("UDP socket has no associated port")
 
         self._address = (interfaces[0][1], self._address[1])
         return await super()._bind_socket(sock)

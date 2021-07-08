@@ -22,10 +22,11 @@ from .servers import open_unix_listeners, serve_unix
 from .socket import (
     TCPListenerConnection,
     TCPStreamConnection,
+    UDPListenerConnection,
     UDPSocketConnection,
     UnixDomainSocketConnection,
-    MulticastUDPSocketConnection,
-    BroadcastUDPSocketConnection,
+    MulticastUDPListenerConnection,
+    BroadcastUDPListenerConnection,
 )
 from .stream import StreamConnection, StreamConnectionBase, StreamWrapperConnection
 from .supervision import (
@@ -37,7 +38,7 @@ from .supervision import (
 from .types import IPAddressAndPort
 
 __all__ = (
-    "BroadcastUDPSocketConnection",
+    "BroadcastUDPListenerConnection",
     "Connection",
     "ConnectionBase",
     "ConnectionSupervisor",
@@ -47,7 +48,7 @@ __all__ = (
     "FileConnection",
     "IPAddressAndPort",
     "ListenerConnection",
-    "MulticastUDPSocketConnection",
+    "MulticastUDPListenerConnection",
     "ReadableConnection",
     "SerialPortConnection",
     "StreamConnection",
@@ -56,6 +57,7 @@ __all__ = (
     "SupervisionPolicy",
     "TCPListenerConnection",
     "TCPStreamConnection",
+    "UDPListenerConnection",
     "UDPSocketConnection",
     "UnixDomainSocketConnection",
     "WritableConnection",
