@@ -1,13 +1,11 @@
+from __future__ import annotations
+
+from typing import Awaitable, Callable, List, TypeVar, Union, TYPE_CHECKING
+
 from ..connections import ReadableConnection, WritableConnection
 
-try:
+if TYPE_CHECKING:
     from tinyrpc.protocols import RPCRequest, RPCResponse
-except ImportError:
-    RPCResponse, RPCResponse = None, None
-    RPCRequest = "RPCRequest"
-    RPCResponse = "RPCResponse"
-
-from typing import Awaitable, Callable, List, TypeVar, Union
 
 __all__ = ("Encoder", "MessageType", "Parser", "RawType", "Reader", "Writer")
 
@@ -20,11 +18,6 @@ Writer = Union[Callable[[RawType], None], WritableConnection[RawType]]
 Parser = Callable[[RawType], List[MessageType]]
 Encoder = Callable[[MessageType], RawType]
 
-if RPCRequest:
-    RPCRequestHandler = Callable[
-        [RPCRequest], Union[RPCResponse, Awaitable[RPCResponse]]
-    ]
-else:
-    RPCRequestHandler = Callable[
-        ["RPCRequest"], Union["RPCResponse", Awaitable["RPCResponse"]]
-    ]
+RPCRequestHandler = Callable[
+    ["RPCRequest"], Union["RPCResponse", Awaitable["RPCResponse"]]
+]

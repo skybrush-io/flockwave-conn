@@ -1,15 +1,27 @@
 from contextlib import asynccontextmanager
+
 from flockwave.concurrency import FutureMap
 from inspect import iscoroutinefunction
 from logging import Logger
 from tinyrpc.dispatch import RPCDispatcher
-from tinyrpc.protocols import RPCRequest, RPCResponse
+from tinyrpc.protocols import RPCRequest, RPCResponse, RPCErrorResponse
 from trio import CancelScope, fail_after, open_memory_channel, open_nursery
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import cast, Any, Callable, Dict, List, Optional, Union
 
 from .types import RPCRequestHandler
 
 __all__ = ("serve_rpc_requests",)
+
+
+class RPCError(RuntimeError):
+    """Base class for RPC errors that arose on the server side without ever
+    reaching a request handler.
+    """
+
+    def __init__(self, code: int = 0, message: str = ""):
+        super().__init__(message or f"RPC error {code}")
+        self.code = code
+        self.message = message
 
 
 class RPCRemoteProxy:
@@ -112,7 +124,9 @@ async def serve_rpc_requests(
 
     # If we received an RPCDispatcher as a handler, use its dispatch method
     if isinstance(handler, RPCDispatcher):
-        handler = handler.dispatch
+        handler = handler.dispatch  # type: ignore
+
+    handler = cast(RPCRequestHandler, handler)
 
     # Create a queue in which one can post outbound messages
     out_queue_tx, out_queue_rx = open_memory_channel(0)
@@ -134,13 +148,41 @@ async def serve_rpc_requests(
         if isinstance(message, RPCRequest):
             # TODO(ntamas): send this to a worker?
             if handler_is_async:
-                response = await handler(message)
+                response = await handler(message)  # type: ignore
             else:
                 response = handler(message)
             if response and not message.one_way:
                 await out_queue_tx.send(response)
+
+        elif isinstance(message, RPCErrorResponse):
+            request_id = cast(str, message.unique_id)
+            future = pending_requests.get(request_id)
+            if future:
+                if not future.done():
+                    error = message.error
+                    if isinstance(error, dict):
+                        future.set_exception(
+                            RPCError(error.get("code", 0), error.get("message", ""))
+                        )
+                    else:
+                        future.set_exception(RPCError(0, str(error)))
+                else:
+                    if log:
+                        log.warn(
+                            "Duplicate error response received for request {!r}".format(
+                                request_id
+                            )
+                        )
+            else:
+                if log:
+                    log.warn(
+                        "Stale error response received for request {!r}".format(
+                            request_id
+                        )
+                    )
+
         elif isinstance(message, RPCResponse):
-            request_id = message.unique_id
+            request_id = cast(str, message.unique_id)
             future = pending_requests.get(request_id)
             if future:
                 if not future.done():
@@ -160,6 +202,7 @@ async def serve_rpc_requests(
                     log.warn(
                         "Stale response received for request {!r}".format(request_id)
                     )
+
         else:
             if log:
                 log.warn("Received unknown message type: {!r}".format(type(message)))
