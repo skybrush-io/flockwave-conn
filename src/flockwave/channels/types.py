@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Awaitable, Callable, List, TypeVar, Union, TYPE_CHECKING
+from typing import Awaitable, Callable, Iterable, TypeVar, Union, TYPE_CHECKING
 
 from ..connections import ReadableConnection, WritableConnection
 
@@ -15,7 +15,7 @@ MessageType = TypeVar("MessageType")
 Reader = Union[Callable[[], Awaitable[RawType]], ReadableConnection[RawType]]
 Writer = Union[Callable[[RawType], None], WritableConnection[RawType]]
 
-Parser = Callable[[RawType], List[MessageType]]
+Parser = Callable[[RawType], Iterable[MessageType]]
 Encoder = Callable[[MessageType], RawType]
 
 RPCRequestHandler = Callable[
