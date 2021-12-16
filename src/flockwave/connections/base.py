@@ -19,6 +19,7 @@ __all__ = (
     "FDConnectionBase",
     "ListenerConnection",
     "ReadableConnection",
+    "RWConnection",
     "TaskConnectionBase",
     "WritableConnection",
 )
@@ -109,6 +110,8 @@ class Connection(metaclass=ABCMeta):
 
 
 T = TypeVar("T")
+RT = TypeVar("RT")
+WT = TypeVar("WT")
 
 
 class ListenerConnection(Connection, Generic[T]):
@@ -149,6 +152,16 @@ class WritableConnection(Connection, Generic[T]):
             data: the data to write
         """
         raise NotImplementedError
+
+
+class RWConnection(ReadableConnection[RT], WritableConnection[WT]):
+    """Interface specification for connection objects that we can read from and
+    write data to.
+
+    This type is mostly present for type checking purposes.
+    """
+
+    pass
 
 
 class ConnectionBase(Connection):
@@ -306,9 +319,7 @@ class ConnectionBase(Connection):
         raise NotImplementedError
 
 
-class FDConnectionBase(
-    ConnectionBase, ReadableConnection[bytes], WritableConnection[bytes]
-):
+class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
     """Base class for connection objects that have an underlying numeric
     file handle or file-like object.
     """

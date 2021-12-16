@@ -12,6 +12,7 @@ from .base import (
     ConnectionState,
     ListenerConnection,
     ReadableConnection,
+    RWConnection,
     WritableConnection,
 )
 from .dummy import DummyConnection
@@ -50,6 +51,7 @@ __all__ = (
     "ListenerConnection",
     "MulticastUDPListenerConnection",
     "ReadableConnection",
+    "RWConnection",
     "SerialPortConnection",
     "StreamConnection",
     "StreamConnectionBase",

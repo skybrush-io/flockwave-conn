@@ -25,8 +25,7 @@ from typing import cast, Optional, Tuple, Union
 from .base import (
     ConnectionBase,
     ListenerConnection,
-    ReadableConnection,
-    WritableConnection,
+    RWConnection,
 )
 from .errors import ConnectionError
 from .factory import create_connection
@@ -242,11 +241,7 @@ class TCPListenerConnection(
 
 
 @create_connection.register("udp")
-class UDPSocketConnection(
-    SocketConnectionBase,
-    ReadableConnection[bytes],
-    WritableConnection[bytes],
-):
+class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
     """Connection object that uses a UDP socket that listens on an arbitrary
     IP address and port and is connected to a specific target IP address and port.
     """
@@ -319,8 +314,7 @@ class UDPSocketConnection(
 @create_connection.register("udp-listen")
 class UDPListenerConnection(
     SocketConnectionBase,
-    ReadableConnection[Tuple[bytes, IPAddressAndPort]],
-    WritableConnection[Tuple[bytes, IPAddressAndPort]],
+    RWConnection[Tuple[bytes, IPAddressAndPort], Tuple[bytes, IPAddressAndPort]],
 ):
     """Connection object that uses a UDP socket that listens on a specific
     IP address and port.

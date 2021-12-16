@@ -7,16 +7,13 @@ from typing import Awaitable, Callable, Optional
 from .base import (
     ConnectionBase,
     ConnectionState,
-    ReadableConnection,
-    WritableConnection,
+    RWConnection,
 )
 
 __all__ = ("StreamConnectionBase", "StreamConnection", "StreamWrapperConnection")
 
 
-class StreamConnectionBase(
-    ConnectionBase, ReadableConnection[bytes], WritableConnection[bytes]
-):
+class StreamConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
     """Connection class that wraps a Trio bidirectional byte stream."""
 
     def __init__(self):
