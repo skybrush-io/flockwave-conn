@@ -170,11 +170,14 @@ reference = "collmot"
 
 [[package]]
 name = "flockwave-parsers"
-version = "1.2.0"
+version = "2.0.0"
 description = "Parser objects for various message formats"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
+
+[package.extras]
+rpc = ["tinyrpc (>=1.0.4,<2.0.0)"]
 
 [package.source]
 type = "legacy"
@@ -676,7 +679,7 @@ serial = ["pyserial"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "178d132ed1072ad5d5248c54e96096d2dba7799a7b0e3e186ae8a31a357babe4"
+content-hash = "09a816567eb972315d09c9c396b70815bfd0a633d1b1272392912c315ed2a1de"
 
 [metadata.files]
 aio-net-events = [
@@ -812,8 +815,8 @@ flockwave-net = [
     {file = "flockwave_net-2.0.2-py3-none-any.whl", hash = "md5:28ef9817b6d162eb94ff9dd1b256bfaa"},
 ]
 flockwave-parsers = [
-    {file = "flockwave-parsers-1.2.0.tar.gz", hash = "md5:9c5fae8990f5b6612cb9776753f24d03"},
-    {file = "flockwave_parsers-1.2.0-py3-none-any.whl", hash = "md5:4f53aadf684d06c79998b332ec2dcaa0"},
+    {file = "flockwave-parsers-2.0.0.tar.gz", hash = "md5:c533703165eaeabdc5c43c95cefe110c"},
+    {file = "flockwave_parsers-2.0.0-py3-none-any.whl", hash = "md5:9425344d3750b6876964d66b60d045c3"},
 ]
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
