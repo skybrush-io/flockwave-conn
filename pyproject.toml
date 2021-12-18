@@ -19,6 +19,7 @@ python-rtmidi = { version = "^1.4.1", optional = true }
 pyserial = { version = "^3.4", optional = true }
 tinyrpc = { version = "^1.0.4", extras = ["msgpack"], optional = true }
 flockwave-net = {version = "^2.0.2", extras = ["async"]}
+flockwave-async = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
