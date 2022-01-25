@@ -22,6 +22,13 @@ from trio.socket import (
 )
 from typing import cast, Optional, Tuple, Union
 
+from flockwave.networking import (
+    create_socket,
+    find_interfaces_in_network,
+    get_broadcast_address_of_network_interface,
+    resolve_network_interface_or_address,
+)
+
 from .base import (
     ConnectionBase,
     ListenerConnection,
@@ -31,13 +38,6 @@ from .errors import ConnectionError
 from .factory import create_connection
 from .stream import StreamConnectionBase
 from .types import IPAddressAndPort
-
-from flockwave.networking import (
-    create_socket,
-    find_interfaces_in_network,
-    get_broadcast_address_of_network_interface,
-    resolve_network_interface_or_address,
-)
 
 __all__ = (
     "BroadcastUDPListenerConnection",
@@ -54,8 +54,10 @@ class InternetAddressMixin:
     """Mixin class that adds an "address" property to a connection, consisting
     of an IP address and a port."""
 
+    _address: Optional[IPAddressAndPort]
+
     def __init__(self):
-        self._address: Optional[IPAddressAndPort] = None
+        self._address = None
 
     @property
     def address(self) -> Optional[IPAddressAndPort]:
@@ -92,10 +94,12 @@ class InternetAddressMixin:
 class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
     """Base class for connection objects using TCP or UDP sockets."""
 
+    _socket: Optional[SocketType]
+
     def __init__(self):
         ConnectionBase.__init__(self)
         InternetAddressMixin.__init__(self)
-        self._socket: Optional[SocketType] = None
+        self._socket = None
 
     @InternetAddressMixin.address.getter
     def address(self) -> Optional[IPAddressAndPort]:
@@ -171,7 +175,7 @@ class IncomingTCPStreamConnection(StreamConnectionBase, InternetAddressMixin):
     TCPListenerConnection_ accepts a new client connection.
     """
 
-    def __init__(self, address, socket: SocketType):
+    def __init__(self, address: IPAddressAndPort, socket: SocketType):
         """Constructor.
 
         Parameters:
@@ -201,6 +205,9 @@ class TCPListenerConnection(
     """Connection object that wraps a Trio TCP listener that listens for
     incoming TCP connections on a specific port.
     """
+
+    _address: IPAddressAndPort
+    _backlog: int
 
     def __init__(self, host: str = "", port: int = 0, *, backlog: int = -1, **kwds):
         """Constructor.
@@ -245,6 +252,8 @@ class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
     """Connection object that uses a UDP socket that listens on an arbitrary
     IP address and port and is connected to a specific target IP address and port.
     """
+
+    _address: IPAddressAndPort
 
     def __init__(
         self,
@@ -324,6 +333,13 @@ class UDPListenerConnection(
     actually tuples containing the raw data _and_ the address to send the data
     to.
     """
+
+    _address: IPAddressAndPort
+    _allow_broadcast: bool
+    _broadcast_interface: Optional[str]
+    _broadcast_ttl: Optional[int]
+    _multicast_interface: Optional[str]
+    _multicast_ttl: Optional[int]
 
     def __init__(
         self,
@@ -493,7 +509,7 @@ class BroadcastUDPListenerConnection(UDPListenerConnection):
     The connection cannot be used for sending packets.
     """
 
-    can_send = False
+    can_send: bool = False
 
     def __init__(self, interface: Optional[str] = None, port: int = 0, **kwds):
         """Constructor.
@@ -533,7 +549,7 @@ class MulticastUDPListenerConnection(UDPListenerConnection):
     The connection cannot be used for sending packets.
     """
 
-    can_send = False
+    can_send: bool = False
 
     def __init__(
         self,
@@ -602,6 +618,9 @@ class SubnetBindingUDPListenerConnection(UDPListenerConnection):
     the connection binds to the first one it finds.
     """
 
+    _broadcast_address: Optional[IPAddressAndPort]
+    _broadcast_address_from_network: Optional[IPAddressAndPort]
+
     def __init__(
         self,
         network: Optional[Union[IPv4Network, IPv6Network, str]] = None,
@@ -631,6 +650,14 @@ class SubnetBindingUDPListenerConnection(UDPListenerConnection):
         self._broadcast_address = None
         self._network = ip_network(network)
 
+        if self._broadcast_port is not None:
+            self._broadcast_address_from_network = (
+                str(self._network.broadcast_address),
+                self._broadcast_port,
+            )
+        else:
+            self._broadcast_address_from_network = None
+
     async def _bind_socket(self, sock) -> None:
         """Binds the given UDP socket to the address where it should listen for
         incoming UDP packets.
@@ -646,16 +673,16 @@ class SubnetBindingUDPListenerConnection(UDPListenerConnection):
         return await super()._bind_socket(sock)
 
     @property
-    def broadcast_address(self):
+    def broadcast_address(self) -> Optional[IPAddressAndPort]:
         """The broadcast address of the subnet."""
         return (
             self._broadcast_address
             if self._broadcast_address is not None
-            else self._network.broadcast_address
+            else self._broadcast_address_from_network
         )
 
     @broadcast_address.setter
-    def broadcast_address(self, value):
+    def broadcast_address(self, value: Optional[IPAddressAndPort]):
         self._broadcast_address = value
 
 
