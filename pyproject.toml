@@ -34,11 +34,6 @@ rpc = ["tinyrpc"]
 serial = ["pyserial"]
 
 [[tool.poetry.source]]
-name = "collmot"
-url = "https://pypi.collmot.com/simple/"
-secondary = true
-
-[[tool.poetry.source]]
 name = "fury"
 url = "https://pypi.fury.io/skybrush/"
 secondary = true
