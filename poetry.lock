@@ -13,11 +13,6 @@ pyobjc-core = {version = ">=8.0,<9.0", markers = "sys_platform == \"darwin\""}
 pyobjc-framework-Cocoa = {version = ">=8.0,<9.0", markers = "sys_platform == \"darwin\""}
 pyobjc-framework-SystemConfiguration = {version = ">=8.0,<9.0", markers = "sys_platform == \"darwin\""}
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "anyio"
 version = "3.5.0"
@@ -36,11 +31,6 @@ doc = ["packaging", "sphinx-rtd-theme", "sphinx-autodoc-typehints (>=1.2.0)"]
 test = ["coverage[toml] (>=4.5)", "hypothesis (>=4.0)", "pytest (>=6.0)", "pytest-mock (>=3.6.1)", "trustme", "contextlib2", "uvloop (<0.15)", "mock (>=4)", "uvloop (>=0.15)"]
 trio = ["trio (>=0.16)"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "async-generator"
 version = "1.10"
@@ -49,11 +39,6 @@ category = "main"
 optional = false
 python-versions = ">=3.5"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "atomicwrites"
 version = "1.4.0"
@@ -61,11 +46,6 @@ description = "Atomic file writes."
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "attrs"
@@ -81,11 +61,6 @@ docs = ["furo", "sphinx", "zope.interface", "sphinx-notfound-page"]
 tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface", "cloudpickle"]
 tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "cloudpickle"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "blinker"
 version = "1.4"
@@ -93,11 +68,6 @@ description = "Fast, simple object-to-object and broadcast signaling"
 category = "main"
 optional = false
 python-versions = "*"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "cffi"
@@ -110,11 +80,6 @@ python-versions = "*"
 [package.dependencies]
 pycparser = "*"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "colorama"
 version = "0.4.4"
@@ -122,11 +87,6 @@ description = "Cross-platform colored terminal text."
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "coverage"
@@ -141,11 +101,6 @@ tomli = {version = "*", optional = true, markers = "extra == \"toml\""}
 
 [package.extras]
 toml = ["tomli"]
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "flockwave-async"
@@ -209,11 +164,6 @@ category = "main"
 optional = false
 python-versions = ">=3.5"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "importlib-metadata"
 version = "4.11.3"
@@ -231,11 +181,6 @@ docs = ["sphinx", "jaraco.packaging (>=9)", "rst.linker (>=1.9)"]
 perf = ["ipython"]
 testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "packaging", "pyfakefs", "flufl.flake8", "pytest-perf (>=0.9.2)", "pytest-black (>=0.3.7)", "pytest-mypy (>=0.9.1)", "importlib-resources (>=1.3)"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "iniconfig"
 version = "1.1.1"
@@ -243,11 +188,6 @@ description = "iniconfig: brain-dead simple config-ini parsing"
 category = "dev"
 optional = false
 python-versions = "*"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "mido"
@@ -261,11 +201,6 @@ python-versions = "*"
 dev = ["check-manifest (>=0.35)", "flake8 (>=3.4.1)", "pytest (>=3.2.2)", "sphinx (>=1.6.3)", "tox (>=2.8.2)"]
 ports = ["python-rtmidi (>=1.1.0)"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "msgpack"
 version = "1.0.3"
@@ -274,11 +209,6 @@ category = "main"
 optional = true
 python-versions = "*"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "netifaces"
 version = "0.11.0"
@@ -286,11 +216,6 @@ description = "Portable network interface information."
 category = "main"
 optional = false
 python-versions = "*"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "outcome"
@@ -303,11 +228,6 @@ python-versions = ">=3.6"
 [package.dependencies]
 attrs = ">=19.2.0"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "packaging"
 version = "21.3"
@@ -318,11 +238,6 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "pluggy"
@@ -339,11 +254,6 @@ importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "py"
 version = "1.11.0"
@@ -351,11 +261,6 @@ description = "library with cross-python path, ini-parsing, io, code, log facili
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "pycparser"
@@ -365,11 +270,6 @@ category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "pyobjc-core"
 version = "8.4.1"
@@ -377,11 +277,6 @@ description = "Python<->ObjC Interoperability Module"
 category = "main"
 optional = false
 python-versions = ">=3.6"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "pyobjc-framework-cocoa"
@@ -393,11 +288,6 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 pyobjc-core = ">=8.4.1"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "pyobjc-framework-systemconfiguration"
@@ -411,11 +301,6 @@ python-versions = ">=3.6"
 pyobjc-core = ">=8.4.1"
 pyobjc-framework-Cocoa = ">=8.4.1"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "pyparsing"
 version = "3.0.7"
@@ -427,11 +312,6 @@ python-versions = ">=3.6"
 [package.extras]
 diagrams = ["jinja2", "railroad-diagrams"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "pyserial"
 version = "3.5"
@@ -442,11 +322,6 @@ python-versions = "*"
 
 [package.extras]
 cp2110 = ["hidapi"]
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "pytest"
@@ -470,11 +345,6 @@ tomli = ">=1.0.0"
 [package.extras]
 testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "xmlschema"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "pytest-cov"
 version = "3.0.0"
@@ -490,11 +360,6 @@ pytest = ">=4.6"
 [package.extras]
 testing = ["fields", "hunter", "process-tests", "six", "pytest-xdist", "virtualenv"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "pytest-trio"
 version = "0.6.0"
@@ -509,11 +374,6 @@ outcome = "*"
 pytest = ">=3.6"
 trio = ">=0.15.0"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "python-rtmidi"
 version = "1.4.9"
@@ -521,11 +381,6 @@ description = "A Python binding for the RtMidi C++ library implemented using Cyt
 category = "main"
 optional = true
 python-versions = "*"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "six"
@@ -535,11 +390,6 @@ category = "main"
 optional = true
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "sniffio"
 version = "1.2.0"
@@ -548,11 +398,6 @@ category = "main"
 optional = false
 python-versions = ">=3.5"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "sortedcontainers"
 version = "2.4.0"
@@ -560,11 +405,6 @@ description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
 category = "main"
 optional = false
 python-versions = "*"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "tinyrpc"
@@ -588,11 +428,6 @@ websocket = ["gevent-websocket"]
 wsgi = ["werkzeug"]
 zmq = ["pyzmq"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "tomli"
 version = "2.0.1"
@@ -600,11 +435,6 @@ description = "A lil' TOML parser"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "trio"
@@ -623,11 +453,6 @@ outcome = "*"
 sniffio = "*"
 sortedcontainers = "*"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "trio-util"
 version = "0.7.0"
@@ -640,11 +465,6 @@ python-versions = ">=3.7"
 async-generator = "*"
 trio = ">=0.11.0"
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [[package]]
 name = "typing-extensions"
 version = "4.1.1"
@@ -652,11 +472,6 @@ description = "Backported and Experimental Type Hints for Python 3.6+"
 category = "main"
 optional = false
 python-versions = ">=3.6"
-
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
 
 [[package]]
 name = "zipp"
@@ -670,11 +485,6 @@ python-versions = ">=3.7"
 docs = ["sphinx", "jaraco.packaging (>=9)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy (>=0.9.1)"]
 
-[package.source]
-type = "legacy"
-url = "https://pypi.collmot.com/simple"
-reference = "collmot"
-
 [extras]
 midi = ["mido", "python-rtmidi"]
 rpc = ["tinyrpc"]
@@ -683,7 +493,7 @@ serial = ["pyserial"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "5f7f948a86db613fc9294bf34d09077dcdc79c22584e85fcc023ebbe740e7f97"
+content-hash = "3efcc0760718f5b8c0e244f80d12e2a8b74fc06806befe44a9ef5361b37b587d"
 
 [metadata.files]
 aio-net-events = [
@@ -969,35 +779,19 @@ pytest-trio = [
     {file = "pytest_trio-0.6.0-py3-none-any.whl", hash = "sha256:3f48cc1df66d279d705af38ad38d1639c2e2380ddffcdc3a45bb81758de61f03"},
 ]
 python-rtmidi = [
-    {file = "python-rtmidi-1.4.9.tar.gz", hash = "md5:f5df87295efdf87ca11e7ad3a23353d5"},
-    {file = "python_rtmidi-1.4.9-cp310-cp310-macosx_10_9_universal2.whl", hash = "md5:9551e5d6fcb97bb26e3e33cf29014720"},
-    {file = "python_rtmidi-1.4.9-cp310-cp310-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "md5:1d430d4eeaa791f71d4d53df5b10670c"},
-    {file = "python_rtmidi-1.4.9-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "md5:23ee3b041664ff2ab1a15db3b09d866f"},
-    {file = "python_rtmidi-1.4.9-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "md5:4b563caceeada7d77c4a6425c63dbe94"},
-    {file = "python_rtmidi-1.4.9-cp310-cp310-win32.whl", hash = "md5:81e619bf58c504d23291cbcb6ba4ae00"},
-    {file = "python_rtmidi-1.4.9-cp310-cp310-win_amd64.whl", hash = "md5:f8b04b1a0704f7623ee35b7254e311e7"},
-    {file = "python_rtmidi-1.4.9-cp36-cp36m-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "md5:3600e2e958a3b07d1ee0a38336181522"},
-    {file = "python_rtmidi-1.4.9-cp36-cp36m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "md5:f7d549ef18930c46f1ed5d483e223eff"},
-    {file = "python_rtmidi-1.4.9-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "md5:c7d4fb6da0e0b1c83de2ab6efdb84686"},
-    {file = "python_rtmidi-1.4.9-cp36-cp36m-win32.whl", hash = "md5:289a62981a6b94508eac5ffc930852de"},
-    {file = "python_rtmidi-1.4.9-cp36-cp36m-win_amd64.whl", hash = "md5:155e9efa37fdc502d0659af0f87c01a5"},
-    {file = "python_rtmidi-1.4.9-cp37-cp37m-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "md5:854684dd16f2771dc733afaf261cfa01"},
-    {file = "python_rtmidi-1.4.9-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "md5:fa6377b8b3d6c19fa0a6b61e46882ded"},
-    {file = "python_rtmidi-1.4.9-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "md5:0eb368b09058ab3a9088e8419a2e8a78"},
-    {file = "python_rtmidi-1.4.9-cp37-cp37m-win32.whl", hash = "md5:8763a2f17fba06efb28fc60ab370ef09"},
-    {file = "python_rtmidi-1.4.9-cp37-cp37m-win_amd64.whl", hash = "md5:2e470d8223120fdc51e170bc2d7dface"},
-    {file = "python_rtmidi-1.4.9-cp38-cp38-macosx_10_9_universal2.whl", hash = "md5:4ccf546e1925612ac0a1d6870367cd84"},
-    {file = "python_rtmidi-1.4.9-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "md5:6d043c6483d07148a4f9173b4027b427"},
-    {file = "python_rtmidi-1.4.9-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "md5:7f6a7addadac5c57e0b3f5ea13930c1f"},
-    {file = "python_rtmidi-1.4.9-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "md5:ef4b9da4df75978bf6a2be0410fd7884"},
-    {file = "python_rtmidi-1.4.9-cp38-cp38-win32.whl", hash = "md5:788b73cf413cab3e28ce18ff63959995"},
-    {file = "python_rtmidi-1.4.9-cp38-cp38-win_amd64.whl", hash = "md5:d58646bfd5204568488bcba3d2fdb815"},
-    {file = "python_rtmidi-1.4.9-cp39-cp39-macosx_10_9_universal2.whl", hash = "md5:4e4d62b24caad7d3b9f39ab8576323b2"},
-    {file = "python_rtmidi-1.4.9-cp39-cp39-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "md5:a5bcbe53daa166f1e068479d8c908d80"},
-    {file = "python_rtmidi-1.4.9-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "md5:4ccfd80d45dae734a0b2f6c2465947a0"},
-    {file = "python_rtmidi-1.4.9-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "md5:0a6a4a648ff4db5c1dcb959c4d381980"},
-    {file = "python_rtmidi-1.4.9-cp39-cp39-win32.whl", hash = "md5:2804b7f12f9eb4479a287eb3a2f6c529"},
-    {file = "python_rtmidi-1.4.9-cp39-cp39-win_amd64.whl", hash = "md5:9b2b8645da9341e1b113575c31f0aca1"},
+    {file = "python-rtmidi-1.4.9.tar.gz", hash = "sha256:bfeb4ed99d0cccf6fa2837566907652ded7adc1c03b69f2160c9de4082301302"},
+    {file = "python_rtmidi-1.4.9-cp36-cp36m-macosx_10_6_intel.whl", hash = "sha256:8f7e154681c5d6ed7228ce8639708592da758ef4c0f575f7020854e07ca6478b"},
+    {file = "python_rtmidi-1.4.9-cp36-cp36m-win32.whl", hash = "sha256:6f495672ec76700400d4dff6f8848dbd52ca60301ed6011a6a1b3a9e95a7a07e"},
+    {file = "python_rtmidi-1.4.9-cp36-cp36m-win_amd64.whl", hash = "sha256:4d75788163327f6ac1f898c29e3b4527da83dbc5bab5a7e614b6a4385fde3231"},
+    {file = "python_rtmidi-1.4.9-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:d201516bb1c64511e7e4de50533f6b828072113e3c26f3f5b657f11b90252073"},
+    {file = "python_rtmidi-1.4.9-cp37-cp37m-win32.whl", hash = "sha256:0f5409e1b2e92cfe377710a0ea5c450c58fda8b52ec4bf4baf517aa731d9f6a6"},
+    {file = "python_rtmidi-1.4.9-cp37-cp37m-win_amd64.whl", hash = "sha256:3d4b7fdb477d8036d51cce281b303686114ae676f1c83693db963ab01db11cf5"},
+    {file = "python_rtmidi-1.4.9-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:5dad7a28035eea9e24aaab4fcb756cd2b78c5b14835aa64750cb4062f77ec169"},
+    {file = "python_rtmidi-1.4.9-cp38-cp38-win32.whl", hash = "sha256:7d27d0a70e85d991f1451f286416cf5ef4514292b027155bf91dcae0b8c0d5d2"},
+    {file = "python_rtmidi-1.4.9-cp38-cp38-win_amd64.whl", hash = "sha256:69907663e0f167fcf3fc1632a792419d0d9d00550f94dca39370ebda3bc999db"},
+    {file = "python_rtmidi-1.4.9-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:04bd95dd86fef3fe8d72838f719d31875f107a842127024bfe276617961eed5d"},
+    {file = "python_rtmidi-1.4.9-cp39-cp39-win32.whl", hash = "sha256:2286ab096a5603430ab1e1a664fe4d96acc40f9443f44c27e911dfad85ea3ac8"},
+    {file = "python_rtmidi-1.4.9-cp39-cp39-win_amd64.whl", hash = "sha256:54d40cb794a6b079105bfb923ab0b4d5f041e9eef5dc5cce25480e4c3e3fc2f6"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
