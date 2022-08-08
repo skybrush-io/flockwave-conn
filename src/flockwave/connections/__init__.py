@@ -18,6 +18,7 @@ from .base import (
 from .dummy import DummyConnection
 from .factory import create_connection, create_connection_factory
 from .file import FileConnection
+from .process import ProcessConnection
 from .serial import SerialPortConnection
 from .servers import open_unix_listeners, serve_unix
 from .socket import (
@@ -50,6 +51,7 @@ __all__ = (
     "IPAddressAndPort",
     "ListenerConnection",
     "MulticastUDPListenerConnection",
+    "ProcessConnection",
     "ReadableConnection",
     "RWConnection",
     "SerialPortConnection",

@@ -194,8 +194,8 @@ class ConnectionBase(Connection):
         """Constructor."""
         self._state: ConnectionState = ConnectionState.DISCONNECTED
 
-        self._is_connected = AsyncBool(False)
-        self._is_disconnected = AsyncBool(True)
+        self._is_connected = AsyncBool(False)  # type: ignore
+        self._is_disconnected = AsyncBool(True)  # type: ignore
 
     @property
     def state(self) -> ConnectionState:
