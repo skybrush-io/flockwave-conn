@@ -11,14 +11,14 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.7"
 blinker = "^1.4"
-trio = ">=0.18.0"
-trio-util = ">=0.5.0"
-netifaces = ">=0.10.9"
+trio = ">=0.21.0"
+trio-util = ">=0.7.0"
+netifaces = ">=0.11.0"
 flockwave-parsers = { version = "^2.0.0", source = "fury" }
-pyserial = { version = "^3.4", optional = true }
-tinyrpc = { version = "^1.0.4", extras = ["msgpack"], optional = true }
+pyserial = { version = "^3.5", optional = true }
+tinyrpc = { version = "^1.1.5", extras = ["msgpack"], optional = true }
 flockwave-net = { version = "^3.0.0", extras = ["async"], source = "fury" }
-flockwave-async = { version = "^1.0.0", source = "fury" }
+flockwave-async = { version = "^1.4.0", source = "fury" }
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.1"
