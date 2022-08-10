@@ -93,13 +93,12 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
         cwd: Optional[str] = None,
         env: Optional[Dict[str, str]] = None,
     ):
-        return cls(ProcessDescriptor(args, cwd=cwd, env=env), nursery=nursery)
+        return cls(ProcessDescriptor(args, cwd=cwd, env=env), nursery)
 
     def __init__(
         self,
         process: Union[ProcessDescriptor, Callable[[], ProcessDescriptor]],
-        *,
-        nursery: Nursery
+        nursery: Nursery,
     ):
         """Constructor.
 
@@ -128,7 +127,9 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
         self._stdout, self._stdin = stdout, stdin
 
     async def _close(self) -> None:
-        assert self._process is not None
+        if self._process is None:
+            # already closed or waiting to be closed
+            return
 
         process, self._process = self._process, None
         self._stdout, self._stdin = None, None
