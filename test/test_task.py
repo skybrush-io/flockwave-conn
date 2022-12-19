@@ -14,7 +14,6 @@ class DummyTaskConnection(TaskConnectionBase):
         started()
         try:
             if self.duration is not None:
-                print("Sleeping for")
                 await sleep(self.duration)
             else:
                 await sleep_forever()

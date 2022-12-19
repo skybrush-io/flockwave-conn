@@ -1,10 +1,12 @@
 """File-based connection object."""
 
-from os import PathLike
-from trio import open_file
-from typing import Union
+import sys
 
-from .base import FDConnectionBase, ConnectionState
+from os import fdopen, PathLike
+from trio import open_file
+from typing import Any, Optional, Union
+
+from .base import FDConnectionBase
 from .factory import create_connection
 
 __all__ = ("FileConnection",)
@@ -13,7 +15,7 @@ __all__ = ("FileConnection",)
 @create_connection.register("file")
 class FileConnection(FDConnectionBase):
     """Connection object that reads its incoming data from a file or
-    file-like object.
+    file-like object, or writes its data to a file or file-like object.
     """
 
     def __init__(
@@ -25,54 +27,58 @@ class FileConnection(FDConnectionBase):
         """Constructor.
 
         Parameters:
-            path: path to the file to read the incoming data from
+            path: path to the file to read from or to write to
             mode: the mode to open the file with
             autoflush: whether to flush the file automatically after each write
         """
-        super(FileConnection, self).__init__()
+        super().__init__(autoflush=autoflush)
 
-        self.autoflush = bool(autoflush)
         self._path = path
         self._mode = mode
 
-    async def close(self) -> None:
-        """Closes the file connection."""
-        if self.state == ConnectionState.DISCONNECTED:
-            return
+    async def _get_file_object_during_open(self) -> Any:
+        return await open_file(self._path, self._mode)
 
-        self._set_state(ConnectionState.DISCONNECTING)
-        await self._file_object.close()
-        self._detach()
-        self._set_state(ConnectionState.DISCONNECTED)
 
-    async def open(self) -> None:
-        """Opens the file connection."""
-        if self.state in (ConnectionState.CONNECTED, ConnectionState.CONNECTING):
-            return
+@create_connection.register("fd")
+class FDConnection(FDConnectionBase):
+    """Connection object that reads its incoming data from a numeric file
+    descriptor, or writes its data to a numeric file descrptior.
+    """
 
-        self._set_state(ConnectionState.CONNECTING)
-        self._attach(await open_file(self._path, self._mode))
-        self._set_state(ConnectionState.CONNECTED)
-
-    async def read(self, size: int = -1) -> bytes:
-        """Reads the given number of bytes from the connection.
+    def __init__(
+        self,
+        path: Union[bytes, str, int],
+        mode: Optional[str] = None,
+        autoflush: bool = False,
+    ):
+        """Constructor.
 
         Parameters:
-            size: the number of bytes to read; -1 means to read all available
-                data
-
-        Returns:
-            the data that was read, or an empty bytes object if the end of file
-            was reached
+            path: integer file descriptor to read from or to write to
+            mode: the mode to open the file with
+            autoflush: whether to flush the file automatically after each write
         """
-        return await self._file_object.read(size)
+        super().__init__(autoflush=autoflush)
 
-    async def write(self, data: bytes) -> None:
-        """Writes the given data to the connection.
+        self._fd = int(path)
+        self._mode = mode
 
-        Parameters:
-            data: the data to write
-        """
-        await self._file_object.write(data)
-        if self.autoflush:
-            await self.flush()
+    async def _get_file_object_during_open(self) -> Any:
+        if self._mode is None:
+            if self._fd == 0:
+                mode = "r"
+            elif self._fd == 1 or self._fd == 2:
+                mode = "w"
+            else:
+                raise RuntimeError("mode must be specified")
+        else:
+            mode = self._mode
+        if self._fd == 0:
+            return sys.stdin
+        elif self._fd == 1:
+            return sys.stdout
+        elif self._fd == 2:
+            return sys.stderr
+        else:
+            return fdopen(self._fd, mode)

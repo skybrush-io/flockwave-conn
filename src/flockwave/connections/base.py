@@ -319,7 +319,7 @@ class ConnectionBase(Connection):
         raise NotImplementedError
 
 
-class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
+class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABCMeta):
     """Base class for connection objects that have an underlying numeric
     file handle or file-like object.
     """
@@ -335,11 +335,13 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
         """
     )
 
-    def __init__(self):
+    def __init__(self, autoflush: bool = False):
         """Constructor."""
-        super(FDConnectionBase, self).__init__()
+        super().__init__()
         self._file_handle: Optional[int] = None
         self._file_object = None
+        self._file_handle_owned: bool = False
+        self.autoflush = bool(autoflush)
 
     def fileno(self) -> Optional[int]:
         """Returns the underlying file handle of the connection, for sake of
@@ -365,24 +367,47 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
         """Returns the underlying file-like object of the connection."""
         return self._file_object
 
+    async def _close(self) -> None:
+        """Closes the file connection."""
+        assert self._file_object is not None
+        self._detach()
+
+    async def _open(self) -> None:
+        """Opens the file connection."""
+        obj = await self._get_file_object_during_open()
+        if obj is not None:
+            self._attach(obj)
+        else:
+            raise RuntimeError("No file object was returned during open()")
+
     def _attach(self, handle_or_object: Any) -> None:
         """Associates a file handle or file-like object to the connection.
         This is the method that derived classes should use whenever the
         connection is associated to a new file handle or file-like object.
         """
         if handle_or_object is None:
-            handle, obj = None, None
+            handle, obj, handle_owned = None, None, False
         elif isinstance(handle_or_object, int):
-            handle, obj = handle_or_object, os.fdopen(handle_or_object)
+            handle, obj, handle_owned = (
+                handle_or_object,
+                os.fdopen(handle_or_object),
+                False,
+            )
         else:
-            handle, obj = handle_or_object.fileno(), handle_or_object
+            handle, obj, handle_owned = (
+                handle_or_object.fileno(),
+                handle_or_object,
+                True,
+            )
 
         # Wrap the raw sync file handle in Trio's async file handle
-        obj = wrap_file(obj)
+        if obj is not None and not hasattr(obj, "aclose"):
+            obj = wrap_file(obj)
 
         old_handle = self._file_handle
         self._set_file_handle(handle)
         self._set_file_object(obj)
+        self._file_handle_owned = handle_owned
 
         if old_handle != self._file_handle:
             self.file_handle_changed.send(
@@ -394,6 +419,14 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
         or file-like object.
         """
         self._attach(None)
+
+    @abstractmethod
+    async def _get_file_object_during_open(self) -> Any:
+        """Implementation of the core of the ``open()`` method; must return
+        a file handle or object that the connection will be attached to.
+        Returning ``None`` will close the connection immediately.
+        """
+        raise NotImplementedError
 
     def _set_file_handle(self, value):
         """Setter for the ``_file_handle`` property. Derived classes should
@@ -431,6 +464,29 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
 
         self._file_object = value
         return True
+
+    async def read(self, size: int = -1) -> bytes:
+        """Reads the given number of bytes from the connection.
+
+        Parameters:
+            size: the number of bytes to read; -1 means to read all available
+                data
+
+        Returns:
+            the data that was read, or an empty bytes object if the end of file
+            was reached
+        """
+        return await self._file_object.read(size)
+
+    async def write(self, data: bytes) -> None:
+        """Writes the given data to the connection.
+
+        Parameters:
+            data: the data to write
+        """
+        await self._file_object.write(data)
+        if self.autoflush:
+            await self.flush()
 
 
 class TaskConnectionBase(ConnectionBase):
