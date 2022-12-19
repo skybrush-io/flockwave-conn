@@ -445,6 +445,8 @@ class TaskConnectionBase(ConnectionBase):
     it is closed.
     """
 
+    _closed_event: Optional[Event]
+
     def assign_nursery(self, nursery: Nursery) -> None:
         """Assigns a nursery to the connection that will be responsible for
         executing the task.
@@ -472,7 +474,8 @@ class TaskConnectionBase(ConnectionBase):
             scope = self._cancel_scope
             self._cancel_scope = None
             scope.cancel()
-            await self._closed_event.wait()
+            if self._closed_event is not None:
+                await self._closed_event.wait()
 
     async def _create_cancel_scope_and_run(
         self, *, task_status=TASK_STATUS_IGNORED
@@ -486,7 +489,8 @@ class TaskConnectionBase(ConnectionBase):
             try:
                 await self._run(started=started)
             finally:
-                self._closed_event.set()
+                if self._closed_event is not None:
+                    self._closed_event.set()
 
         await self.close()
 
