@@ -1,4 +1,5 @@
 from flockwave.connections import create_connection, DummyConnection
+from trio import move_on_after
 
 
 async def test_dummy_open_close():
@@ -24,3 +25,23 @@ async def test_dummy_context_manager():
 
 async def test_dummy_create_with_factory():
     assert isinstance(create_connection("dummy"), DummyConnection)
+
+
+async def test_dummy_write():
+    conn = DummyConnection()
+    await conn.open()
+    await conn.write(b"foobar")
+    await conn.close()
+
+
+async def test_dummy_read(autojump_clock):
+    conn = DummyConnection()
+    await conn.open()
+
+    read_succeeded = False
+    with move_on_after(5):
+        await conn.read()
+        read_succeeded = True
+
+    assert not read_succeeded
+    await conn.close()
