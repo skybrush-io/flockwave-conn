@@ -15,8 +15,13 @@ from .base import (
     RWConnection,
     WritableConnection,
 )
+from .channel import ChannelConnection
 from .dummy import DummyConnection
-from .factory import create_connection, create_connection_factory
+from .factory import (
+    create_connection,
+    create_connection_factory,
+    create_loopback_connection_pair,
+)
 from .file import FileConnection
 from .process import ProcessConnection
 from .serial import SerialPortConnection
@@ -41,6 +46,7 @@ from .types import IPAddressAndPort
 
 __all__ = (
     "BroadcastUDPListenerConnection",
+    "ChannelConnection",
     "Connection",
     "ConnectionBase",
     "ConnectionSupervisor",
@@ -67,6 +73,7 @@ __all__ = (
     "WritableConnection",
     "create_connection",
     "create_connection_factory",
+    "create_loopback_connection_pair",
     "open_unix_listeners",
     "serve_unix",
     "supervise",

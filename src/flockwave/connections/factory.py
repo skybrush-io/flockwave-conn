@@ -7,13 +7,22 @@ specification formats.
 
 from contextlib import contextmanager
 from functools import partial
+from typing import Any, Callable, Dict, Iterator, Tuple, TypeVar, Union, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
-from typing import Any, Dict, Iterator, Union
 
 from .errors import UnknownConnectionTypeError
 
+if TYPE_CHECKING:
+    from .channel import ChannelConnection
 
-__all__ = ("create_connection", "create_connection_factory")
+
+__all__ = (
+    "create_connection",
+    "create_connection_factory",
+    "create_loopback_connection_pair",
+)
+
+T = TypeVar("T")
 
 
 class Factory:
@@ -220,3 +229,28 @@ def create_connection_factory(*args, **kwds):
     This is essentially a deferred call to `create_connection()`
     """
     return partial(create_connection, *args, **kwds)
+
+
+def create_loopback_connection_pair(
+    data_type: Callable[[], T],
+    buffer_size: int = 0,
+) -> Tuple["ChannelConnection[T, T]", "ChannelConnection[T, T]"]:
+    """Creates a pair of connections such that writing to one of them will
+    send the written data to the read endpoint of the other connection and vice versa.
+
+    Args:
+        data_type: specifies the type of data that can be sent on the
+            channel; used only for type safety
+        buffer_size: number of items that can stay in the buffers between the
+            connections without blocking
+    """
+    from trio import open_memory_channel
+    from .channel import ChannelConnection
+
+    tx1, rx1 = open_memory_channel(buffer_size)
+    tx2, rx2 = open_memory_channel(buffer_size)
+
+    conn1 = ChannelConnection(tx1, rx2)
+    conn2 = ChannelConnection(tx2, rx1)
+
+    return conn1, conn2
