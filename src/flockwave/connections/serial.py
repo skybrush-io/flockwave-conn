@@ -155,7 +155,6 @@ class _FdStreamBasedSerialPortStream(SerialPortStreamBase):
             raise RuntimeError("SerialPortStream is not supported on Windows")
 
         self._device = device
-        self._device.nonblocking()
         self._fd_stream = FdStream(dup(self._device.fileno()))
 
     async def aclose(self) -> None:
