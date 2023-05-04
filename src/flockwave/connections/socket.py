@@ -337,7 +337,6 @@ class UDPListenerConnection(
     _address: IPAddressAndPort
     _allow_broadcast: bool
     _broadcast_interface: Optional[str]
-    _broadcast_ttl: Optional[int]
     _multicast_interface: Optional[str]
     _multicast_ttl: Optional[int]
 
