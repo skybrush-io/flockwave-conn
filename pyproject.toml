@@ -13,14 +13,13 @@ python = "^3.7"
 blinker = "^1.4"
 trio = ">=0.21.0"
 trio-util = ">=0.7.0"
-netifaces = ">=0.11.0"
 flockwave-parsers = { version = "^2.0.0", source = "fury" }
 pyserial = { version = "^3.5", optional = true }
 tinyrpc = { version = "^1.1.5", extras = ["msgpack"], optional = true }
-flockwave-net = { version = "^4.0.0", extras = ["async"], source = "fury" }
+flockwave-net = { version = "^5.0.0", extras = ["async"], source = "fury" }
 flockwave-async = { version = "^1.4.0", source = "fury" }
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"
 pytest-trio = "^0.6.0"
 pytest-cov = "^4.0.0"
@@ -31,9 +30,13 @@ rpc = ["tinyrpc"]
 serial = ["pyserial"]
 
 [[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[[tool.poetry.source]]
 name = "fury"
 url = "https://pypi.fury.io/skybrush/"
-secondary = true
+priority = "supplemental"
 
 [tool.coverage.paths]
 source = ["src"]
