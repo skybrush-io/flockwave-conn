@@ -33,7 +33,7 @@ class Factory:
 
     def __init__(self):
         """Constructor."""
-        self._registry = dict()
+        self._registry = {}
 
     @staticmethod
     def _url_specification_to_dict(specification):

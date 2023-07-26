@@ -408,7 +408,7 @@ class UDPListenerConnection(
                 except ImportError:
                     raise RuntimeError(
                         "this OS does not support setting the broadcast interface of a socket"
-                    )
+                    ) from None
                 broadcast_interface = await to_thread.run_sync(
                     resolve_network_interface_or_address, self._broadcast_interface
                 )
@@ -702,7 +702,9 @@ class UnixDomainSocketConnection(StreamConnectionBase):
         try:
             from trio.socket import AF_UNIX
         except ImportError:
-            raise RuntimeError("UNIX domain sockets are not supported on this platform")
+            raise RuntimeError(
+                "UNIX domain sockets are not supported on this platform"
+            ) from None
 
         sock = socket(AF_UNIX, SOCK_STREAM)
         await sock.connect(self._path)

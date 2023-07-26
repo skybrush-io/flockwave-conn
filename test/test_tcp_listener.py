@@ -39,7 +39,7 @@ async def test_tcp_listener_connection(nursery):
 
     port = await nursery.start(_listener)
     events = []
-    for i in range(3):
+    for _i in range(3):
         event = Event()
         nursery.start_soon(_sender, port, event)
         events.append(event)

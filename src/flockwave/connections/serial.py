@@ -152,7 +152,7 @@ class _FdStreamBasedSerialPortStream(SerialPortStreamBase):
         try:
             from trio.lowlevel import FdStream
         except ImportError:
-            raise RuntimeError("SerialPortStream is not supported on Windows")
+            raise RuntimeError("SerialPortStream is not supported on Windows") from None
 
         self._device = device
         self._fd_stream = FdStream(dup(self._device.fileno()))
