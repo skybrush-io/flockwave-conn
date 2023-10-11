@@ -2,18 +2,18 @@
 
 [[package]]
 name = "aio-net-events"
-version = "6.0.0"
+version = "6.0.1"
 description = "Asynchronous network configuration event detector for Python 3.7 and above"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "aio_net_events-6.0.0-py3-none-any.whl", hash = "sha256:591c685e42829799465f340c4ad634187b5b833b605f237ef2311962b760ea1a"},
-    {file = "aio_net_events-6.0.0.tar.gz", hash = "sha256:bbcfaf54f34276251b4165c89b1a58d81daea55f7dc793a14e8afd9f15734c4b"},
+    {file = "aio_net_events-6.0.1-py3-none-any.whl", hash = "sha256:896b8ae89e478b9bbad5d99e2976677da8594481d2fb5b7179ced8f75ba371ac"},
+    {file = "aio_net_events-6.0.1.tar.gz", hash = "sha256:8432af4d8ab6cc577c6c40ee58f894b2979852b26dd46adc9dd54649b9496ac4"},
 ]
 
 [package.dependencies]
 anyio = ">=3.7.1,<5"
-netifaces-plus = ">=0.12.0"
+netifaces-plus = ">=0.12.1"
 pyobjc-core = {version = ">=9.2,<10.0", markers = "sys_platform == \"darwin\""}
 pyobjc-framework-Cocoa = {version = ">=9.2,<10.0", markers = "sys_platform == \"darwin\""}
 pyobjc-framework-SystemConfiguration = {version = ">=9.2,<10.0", markers = "sys_platform == \"darwin\""}
@@ -257,22 +257,22 @@ reference = "fury"
 
 [[package]]
 name = "flockwave-net"
-version = "6.0.0"
+version = "6.0.1"
 description = "Networking related functions for apps based on the Flockwave framework"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "flockwave-net-6.0.0.tar.gz", hash = "sha256:6516c06c07e206c5a7c363dde25ff00aae7d8f870689f08d3c28c0dc77b8058b"},
-    {file = "flockwave_net-6.0.0-py3-none-any.whl", hash = "sha256:0f498263748da367565daa9c611a154aa7bea066d7bfd9acf21173969c362cbe"},
+    {file = "flockwave-net-6.0.1.tar.gz", hash = "sha256:9a4fc6efbe8bb845268060962b1e15ebf82ed0f5984c957c28708082e6485fe7"},
+    {file = "flockwave_net-6.0.1-py3-none-any.whl", hash = "sha256:0a486ee543bb39c6709ef5059e65b63bdf192184077cbd323e3e677ad38c0021"},
 ]
 
 [package.dependencies]
-aio-net-events = {version = ">=6.0.0,<7.0.0", optional = true, markers = "extra == \"async\""}
-netifaces-plus = ">=0.11.0"
+aio-net-events = {version = ">=6.0.1,<7.0.0", optional = true, markers = "extra == \"async\""}
+netifaces-plus = ">=0.12.1"
 trio = {version = ">=0.19.0", optional = true, markers = "extra == \"async\""}
 
 [package.extras]
-async = ["aio-net-events (>=6.0.0,<7.0.0)", "trio (>=0.19.0)"]
+async = ["aio-net-events (>=6.0.1,<7.0.0)", "trio (>=0.19.0)"]
 
 [package.source]
 type = "legacy"
@@ -741,4 +741,4 @@ serial = ["pyserial"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "a546d2ef301bde7df9034c4a21f106dc6b1e7bd454683cfb4e4e17996a19dca1"
+content-hash = "653df7a36257177cf5f28d42f421cc82c246065c047e8aacdaf364640a477abe"

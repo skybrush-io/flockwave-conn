@@ -14,7 +14,7 @@ trio-util = ">=0.7.0"
 flockwave-parsers = { version = "^2.0.0", source = "fury" }
 pyserial = { version = "^3.5", optional = true }
 tinyrpc = { version = "^1.1.7", extras = ["msgpack"], optional = true }
-flockwave-net = { version = "^6.0.0", extras = ["async"], source = "fury" }
+flockwave-net = { version = "^6.0.1", extras = ["async"], source = "fury" }
 flockwave-async = { version = "^1.4.0", source = "fury" }
 
 [tool.poetry.group.dev.dependencies]
