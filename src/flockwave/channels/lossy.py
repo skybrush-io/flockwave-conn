@@ -40,7 +40,7 @@ class LossyChannelWrapper(Channel[MessageType]):
         channel: Channel[MessageType],
         loss_probability: float = 0.1,
         *,
-        random: Callable[[], float] = random_01
+        random: Callable[[], float] = random_01,
     ):
         """Constructor.
 

@@ -267,7 +267,7 @@ class TrioListenerBase(ListenerBase):
         self,
         *,
         handler: Optional[TrioConnectionHandler] = None,
-        nursery: Optional[Nursery] = None
+        nursery: Optional[Nursery] = None,
     ):
         """Constructor.
 

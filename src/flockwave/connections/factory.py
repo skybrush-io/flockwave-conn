@@ -31,17 +31,19 @@ class Factory:
     dict representation.
     """
 
+    _registry: Dict[str, Callable]
+
     def __init__(self):
         """Constructor."""
         self._registry = {}
 
     @staticmethod
-    def _url_specification_to_dict(specification):
+    def _url_specification_to_dict(specification: str) -> Dict[str, Any]:
         """Converts a URL-styled specification to a dict-styled
         specification.
 
         Parameters:
-            specification (str): the URL-styled specification to convert
+            specification: the URL-styled specification to convert
 
         Returns:
             dict: the dict-styled specification

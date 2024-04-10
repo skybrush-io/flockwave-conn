@@ -16,16 +16,7 @@ __all__ = ("StreamConnectionBase", "StreamConnection", "StreamWrapperConnection"
 class StreamConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
     """Connection class that wraps a Trio bidirectional byte stream."""
 
-    def __init__(self):
-        """Constructor.
-
-        Parameters:
-            factory: async callable that must be called with no arguments
-                and that will construct a new Trio bidirectional byte
-                stream that the connection will wrap.
-        """
-        super().__init__()
-        self._stream: Optional[Stream] = None
+    _stream: Optional[Stream] = None
 
     @abstractmethod
     async def _create_stream(self) -> Stream:
@@ -97,13 +88,7 @@ class StreamConnection(StreamConnectionBase):
         super().__init__()
         self._factory = factory
 
-    @abstractmethod
     async def _create_stream(self) -> Stream:
-        """Creates the stream that the connection should operate on.
-
-        Each invocation of this method should return a new Trio stream
-        instance.
-        """
         return await self._factory()
 
 

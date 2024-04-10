@@ -1,7 +1,5 @@
 """Connection for a serial port."""
 
-from __future__ import absolute_import, print_function
-
 import platform
 import re
 
@@ -256,7 +254,7 @@ class SerialPortConnection(StreamConnectionBase):
                 by the device itself on the USB bus. Used only when the path
                 is empty and works for USB devices only.
         """
-        super(SerialPortConnection, self).__init__()
+        super().__init__()
 
         self._path = path
         self._baud = baud
