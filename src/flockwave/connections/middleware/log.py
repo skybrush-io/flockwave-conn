@@ -1,10 +1,11 @@
 from functools import singledispatch, wraps
+from hexdump import hexdump
 from typing import (
+    cast,
     Any,
     Callable,
     Generic,
     Iterable,
-    Sequence,
     TypeVar,
     Union,
 )
@@ -36,22 +37,14 @@ def format_string_for_logging(obj: str) -> Iterable[str]:
     return obj
 
 
-def _make_printable(row: Sequence[int]) -> str:
-    return "".join(chr(x) if 32 <= x < 128 else "." for x in row)
-
-
 @format_object_for_logging.register(bytes)
 @format_object_for_logging.register(bytearray)
 @format_object_for_logging.register(memoryview)
 def format_bytes_for_logging(
     obj: Union[bytes, bytearray, memoryview],
 ) -> Iterable[str]:
-    num_bytes = len(obj)
-    row_length = 16
-
-    for start in range(0, num_bytes, row_length):
-        row = obj[start : (start + row_length)]
-        yield f"{row.hex(' '):48}| {_make_printable(row)}"
+    for line in cast(Iterable[str], hexdump(obj, "generator")):
+        yield line[line.index(":") + 1 :]
 
 
 def prefix_formatter(formatter: Formatter, prefix: str) -> Formatter:
@@ -68,8 +61,8 @@ def prefix_formatter(formatter: Formatter, prefix: str) -> Formatter:
 
 
 _default_formatters = (
-    prefix_formatter(format_bytes_for_logging, "<-- | "),
-    prefix_formatter(format_bytes_for_logging, "--> | "),
+    prefix_formatter(format_bytes_for_logging, "<-- "),
+    prefix_formatter(format_bytes_for_logging, "--> "),
 )
 
 

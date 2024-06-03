@@ -21,8 +21,8 @@ async def test_log_read():
         assert data == b"hello world\x01\x02\x03"
 
     assert foo_log == [
-        "--> | 68 65 6c 6c 6f 20 77 6f 72 6c 64 01 02 03       | hello world..."
+        "-->  68 65 6C 6C 6F 20 77 6F  72 6C 64 01 02 03        hello world..."
     ]
     assert bar_log == [
-        "<-- | 68 65 6c 6c 6f 20 77 6f 72 6c 64 01 02 03       | hello world..."
+        "<--  68 65 6C 6C 6F 20 77 6F  72 6C 64 01 02 03        hello world..."
     ]

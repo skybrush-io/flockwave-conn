@@ -301,6 +301,16 @@ url = "https://pypi.fury.io/skybrush"
 reference = "fury"
 
 [[package]]
+name = "hexdump"
+version = "3.3"
+description = "dump binary data to hex format and restore from there"
+optional = false
+python-versions = "*"
+files = [
+    {file = "hexdump-3.3.zip", hash = "sha256:d781a43b0c16ace3f9366aade73e8ad3a7bd5137d58f0b45ab2d3f54876f20db"},
+]
+
+[[package]]
 name = "idna"
 version = "3.7"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -834,4 +844,4 @@ serial = ["pyserial"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "7edd57a71a706ee71d4d58903f6bc028df1778be22239f77f8527e1ea683e27f"
+content-hash = "507094ee6284da7d6ec91d157f7ddf8f31127f209d254c0fbbe254ed8cc84e33"
