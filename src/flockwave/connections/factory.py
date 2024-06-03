@@ -12,6 +12,7 @@ from functools import partial
 from typing import (
     Any,
     Callable,
+    Generic,
     Iterator,
     Optional,
     TypeVar,
@@ -20,7 +21,7 @@ from typing import (
 )
 from urllib.parse import parse_qs, urlparse
 
-from .errors import UnknownConnectionTypeError
+from .errors import UnknownConnectionTypeError, UnknownMiddlewareTypeError
 
 if TYPE_CHECKING:
     from .base import Connection
@@ -36,17 +37,27 @@ __all__ = (
 T = TypeVar("T")
 
 
-class Factory:
+class Factory(Generic[T]):
     """Base class for connection or listener factory objects that create
     connections or listeners from a URL-like string representation or a simple
     dict representation.
     """
 
-    _registry: dict[str, Callable[[], Connection]]
+    _registry: dict[str, Callable[..., T]]
+    """Dictionary mapping connection names to factory functions that create a
+    connection.
+    """
+
+    _middleware_registry: dict[str, Callable[[T], T]]
+    """Dictionary mapping middleware names to functions that wrap an existing
+    instance returned from a factory function to provide additional functionality
+    on top of it.
+    """
 
     def __init__(self):
         """Constructor."""
         self._registry = {}
+        self._middleware_registry = {}
 
     @staticmethod
     def _url_specification_to_dict(specification: str) -> dict[str, Any]:
@@ -103,7 +114,7 @@ class Factory:
 
         return result
 
-    def create(self, specification: Union[str, dict[str, Any]]):
+    def create(self, specification: Union[str, dict[str, Any]]) -> T:
         """Creates a connection or listener object from its specification. The
         specification may be written in one of two forms: a single URL-style
         string or a dictionary with prescribed keys and values.
@@ -132,6 +143,12 @@ class Factory:
 
             SerialPortConnection(path="/dev/ttyUSB0", baud=115200)
 
+        When the scheme contains one or more ``+`` signs, the part before the
+        first ``+`` is considered the name that resolves to a connection class,
+        and the remaining parts are considered _middleware_ names, i.e. wrappers
+        that take an existing object instance and return another instance by
+        adding some functionality on top of the original instance.
+
         Parameter value that contain digits and positive/negative signs
         only will be cast to an integer before passing them to the
         connection or listener class. Note that fractional numbers will *not* be cast
@@ -143,6 +160,7 @@ class Factory:
 
             {
                 "type": "serial",
+                "middleware": [],
                 "path": "/dev/ttyUSB0",
                 "parameters": {
                     "param1": "value1",
@@ -155,8 +173,13 @@ class Factory:
         callable) in the factory, the ``host``, ``port`` and ``path``
         members will be merged with the ``parameters`` dictionary (if any)
         and the merged dictionary will be passed as keyword arguments.
-        ``host``, ``port``, ``path`` and ``parameters`` are all optional.
-        No automatic type conversion is performed on the members of the
+
+        The ``middleware`` array will be used to look of the middleware that
+        should wrap the originally created instance. Each entry in the
+        ``middleware`` array is a string identifying the middleware to look up.
+
+        ``host``, ``middleware``, ``port``, ``path`` and ``parameters`` are all
+        optional. No automatic type conversion is performed on the members of the
         ``parameters`` dict.
 
         Parameters:
@@ -169,6 +192,8 @@ class Factory:
         Raises:
             UnknownConnectionTypeError: if the type of the connection or listener
                 is not known to the factory
+            UnknownMiddlewareTypeError: if the type of one of the middlewares
+                is not known to the factory
         """
         if isinstance(specification, str):
             specification = self._url_specification_to_dict(specification)
@@ -178,14 +203,27 @@ class Factory:
         if func is None:
             raise UnknownConnectionTypeError(connection_type)
 
+        middleware_types = specification.get("middleware", ())
+        middleware = []
+        for middleware_type in middleware_types:
+            mw = self._middleware_registry.get(middleware_type)
+            if mw is None:
+                raise UnknownMiddlewareTypeError(middleware_type)
+            middleware.append(mw)
+
         parameters = {}
         for name in ("host", "port", "path", "username", "password"):
             if name in specification:
                 parameters[name] = specification[name]
         parameters.update(specification.get("parameters", {}))
-        return func(**parameters)
 
-    def register(self, name: str, klass: Optional[Callable[[], Connection]] = None):
+        result = func(**parameters)
+        for mw in middleware:
+            result = mw(result)
+
+        return result
+
+    def register(self, name: str, klass: Optional[Callable[..., T]] = None):
         """Registers the given class for this factory with the given name, or
         returns a decorator that will register an arbitrary class with the given
         name (if no class is specified).
@@ -217,7 +255,7 @@ class Factory:
         del self._registry[name]
 
     @contextmanager
-    def use(self, klass: Callable[[], Connection], name: str) -> Iterator[None]:
+    def use(self, klass: Callable[..., T], name: str) -> Iterator[None]:
         """Context manager temporarily registers the given class for this factory
         with the given name and unregisters it when the context is exited.
 
@@ -239,7 +277,7 @@ class Factory:
         return self.create(*args, **kwds)
 
 
-create_connection = Factory()
+create_connection = Factory[Connection]()
 """Singleton connection factory"""
 
 

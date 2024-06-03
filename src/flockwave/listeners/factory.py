@@ -1,9 +1,14 @@
 from functools import partial
+from typing import TYPE_CHECKING
 
 from ..connections.factory import Factory
 
+if TYPE_CHECKING:
+    from .base import Listener
 
-create_listener = Factory()  #: Singleton listener factory
+
+create_listener = Factory[Listener]()
+"""Singleton listener factory."""
 
 
 def create_listener_factory(*args, **kwds):
