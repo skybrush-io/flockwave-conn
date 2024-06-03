@@ -217,15 +217,22 @@ class Factory:
         del self._registry[name]
 
     @contextmanager
-    def use(self, klass, name: str) -> Iterator[None]:
+    def use(self, klass: Callable[[], Connection], name: str) -> Iterator[None]:
         """Context manager temporarily registers the given class for this factory
         with the given name and unregisters it when the context is exited.
+
+        This function allows the user to safely override a class associated to a
+        given name with another one. If the name is already taken by another
+        class, the old class will be restored upon exiting the context.
         """
+        old_klass = self._registry.get(name)
         try:
             self.register(name, klass)
             yield
         finally:
             self.unregister(name)
+            if old_klass is not None:
+                self.register(name, old_klass)
 
     def __call__(self, *args, **kwds):
         """Forwards the invocation to the `create()`_ method."""
