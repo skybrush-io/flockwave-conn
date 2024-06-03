@@ -5,14 +5,25 @@ See :meth:`FactoryBase.create()`_ for more information about the two
 specification formats.
 """
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Dict, Iterator, Tuple, TypeVar, Union, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Iterator,
+    Optional,
+    TypeVar,
+    Union,
+    TYPE_CHECKING,
+)
 from urllib.parse import parse_qs, urlparse
 
 from .errors import UnknownConnectionTypeError
 
 if TYPE_CHECKING:
+    from .base import Connection
     from .channel import ChannelConnection
 
 
@@ -31,14 +42,14 @@ class Factory:
     dict representation.
     """
 
-    _registry: Dict[str, Callable]
+    _registry: dict[str, Callable[[], Connection]]
 
     def __init__(self):
         """Constructor."""
         self._registry = {}
 
     @staticmethod
-    def _url_specification_to_dict(specification: str) -> Dict[str, Any]:
+    def _url_specification_to_dict(specification: str) -> dict[str, Any]:
         """Converts a URL-styled specification to a dict-styled
         specification.
 
@@ -65,7 +76,7 @@ class Factory:
         # Parse the parameters into a dict, turning values into integers
         # where applicable
         raw_parameters = parse_qs(parts.query) if parts.query else {}
-        parameters: Dict[str, Union[int, str]] = {}
+        parameters: dict[str, Union[int, str]] = {}
         for k, v in raw_parameters.items():
             if len(v) > 1:
                 raise ValueError("repeated parameters are not supported")
@@ -92,7 +103,7 @@ class Factory:
 
         return result
 
-    def create(self, specification: Union[str, Dict[str, Any]]):
+    def create(self, specification: Union[str, dict[str, Any]]):
         """Creates a connection or listener object from its specification. The
         specification may be written in one of two forms: a single URL-style
         string or a dictionary with prescribed keys and values.
@@ -174,7 +185,7 @@ class Factory:
         parameters.update(specification.get("parameters", {}))
         return func(**parameters)
 
-    def register(self, name: str, klass=None):
+    def register(self, name: str, klass: Optional[Callable[[], Connection]] = None):
         """Registers the given class for this factory with the given name, or
         returns a decorator that will register an arbitrary class with the given
         name (if no class is specified).
@@ -221,7 +232,8 @@ class Factory:
         return self.create(*args, **kwds)
 
 
-create_connection = Factory()  #: Singleton connection factory
+create_connection = Factory()
+"""Singleton connection factory"""
 
 
 def create_connection_factory(*args, **kwds):
@@ -236,7 +248,7 @@ def create_connection_factory(*args, **kwds):
 def create_loopback_connection_pair(
     data_type: Callable[[], T],
     buffer_size: int = 0,
-) -> Tuple["ChannelConnection[T, T]", "ChannelConnection[T, T]"]:
+) -> tuple["ChannelConnection[T, T]", "ChannelConnection[T, T]"]:
     """Creates a pair of connections such that writing to one of them will
     send the written data to the read endpoint of the other connection and vice versa.
 

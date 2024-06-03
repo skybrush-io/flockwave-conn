@@ -7,7 +7,7 @@ from functools import partial
 from subprocess import PIPE, STDOUT
 from trio import Nursery, Process, move_on_after, run_process
 from trio.abc import ReceiveStream, SendStream
-from typing import Callable, Dict, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 from .base import ConnectionBase, RWConnection
 
@@ -28,7 +28,7 @@ class ProcessDescriptor:
     cwd: Optional[str] = None
     """Working directory to change to before starting the process."""
 
-    env: Optional[Dict[str, str]] = None
+    env: Optional[dict[str, str]] = None
     """The environment of the process; ``None`` to inherit the environment of
     the parent process.
     """
@@ -91,7 +91,7 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
         nursery: Nursery,
         args: Union[str, Sequence[str]],
         cwd: Optional[str] = None,
-        env: Optional[Dict[str, str]] = None,
+        env: Optional[dict[str, str]] = None,
     ):
         return cls(ProcessDescriptor(args, cwd=cwd, env=env), nursery)
 

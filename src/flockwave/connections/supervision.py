@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from functools import partial
 from trio import CancelScope, Nursery, open_memory_channel, open_nursery, sleep
 from trio_util import wait_any
-from typing import Awaitable, Callable, Dict, Optional, TypeVar, Union
+from typing import Awaitable, Callable, Optional, TypeVar, Union
 
 from .base import Connection, ListenerConnection
 
@@ -59,7 +59,7 @@ class ConnectionSupervisor:
         """
         self._policy = policy or default_policy
 
-        self._entries: Dict[Connection, ConnectionSupervisor.Entry] = {}
+        self._entries: dict[Connection, ConnectionSupervisor.Entry] = {}
         self._nursery: Optional[Nursery] = None
 
         self._tx_queue, self._rx_queue = open_memory_channel(32)

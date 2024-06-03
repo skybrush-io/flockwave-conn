@@ -20,7 +20,7 @@ from trio.socket import (
     SO_BROADCAST,
     SocketType,
 )
-from typing import cast, Optional, Tuple, Union
+from typing import cast, Optional, Union
 
 from flockwave.networking import (
     create_socket,
@@ -323,7 +323,7 @@ class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
 @create_connection.register("udp-listen")
 class UDPListenerConnection(
     SocketConnectionBase,
-    RWConnection[Tuple[bytes, IPAddressAndPort], Tuple[bytes, IPAddressAndPort]],
+    RWConnection[tuple[bytes, IPAddressAndPort], tuple[bytes, IPAddressAndPort]],
 ):
     """Connection object that uses a UDP socket that listens on a specific
     IP address and port.
@@ -454,7 +454,7 @@ class UDPListenerConnection(
 
     async def read(
         self, size: int = 4096, flags: int = 0
-    ) -> Tuple[bytes, Optional[IPAddressAndPort]]:
+    ) -> tuple[bytes, Optional[IPAddressAndPort]]:
         """Reads some data from the connection.
 
         Parameters:
@@ -476,7 +476,7 @@ class UDPListenerConnection(
         else:
             return (b"", None)
 
-    async def write(self, data: Tuple[bytes, IPAddressAndPort], flags: int = 0) -> None:
+    async def write(self, data: tuple[bytes, IPAddressAndPort], flags: int = 0) -> None:
         """Writes the given data to the socket connection.
 
         Parameters:
