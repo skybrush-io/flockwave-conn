@@ -6,7 +6,7 @@ from logging import Logger
 from tinyrpc.dispatch import RPCDispatcher
 from tinyrpc.protocols import RPCRequest, RPCResponse, RPCErrorResponse
 from trio import CancelScope, fail_after, open_memory_channel, open_nursery
-from typing import cast, Any, Callable, Dict, List, Optional, Union
+from typing import cast, Any, Callable, Optional, Union
 
 from .types import RPCRequestHandler
 
@@ -95,7 +95,7 @@ class RPCRemotePeer:
 async def serve_rpc_requests(
     channel,
     *,
-    create_request: Callable[[str, List[Any], Dict[str, Any]], RPCRequest],
+    create_request: Callable[[str, list[Any], dict[str, Any]], RPCRequest],
     handler: Union[RPCRequestHandler, RPCDispatcher],
     log: Optional[Logger] = None,
     timeout: float = 5,
