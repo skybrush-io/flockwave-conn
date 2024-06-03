@@ -9,8 +9,8 @@ async def test_log_read_write():
     bar_log: list[str] = []
 
     async with (
-        LoggingMiddleware(foo, writer=foo_log.append) as foo_with_logging,
-        LoggingMiddleware(bar, writer=bar_log.append) as bar_with_logging,
+        LoggingMiddleware.create(writer=foo_log.append)(foo) as foo_with_logging,
+        LoggingMiddleware.create(writer=bar_log.append)(bar) as bar_with_logging,
     ):
         assert isinstance(foo_with_logging, foo.__class__)
         assert isinstance(bar_with_logging, bar.__class__)

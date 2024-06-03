@@ -21,10 +21,10 @@ from typing import (
 )
 from urllib.parse import parse_qs, urlparse
 
+from .base import Connection
 from .errors import UnknownConnectionTypeError, UnknownMiddlewareTypeError
 
 if TYPE_CHECKING:
-    from .base import Connection
     from .channel import ChannelConnection
 
 
@@ -75,7 +75,8 @@ class Factory(Generic[T]):
         if not parts.scheme:
             # No ":" in specification; let's assume that the entire string is
             # a URL scheme and that we have no parameters
-            return {"type": specification}
+            base_type, *middleware = specification.split("+")
+            return {"type": base_type, "middleware": middleware}
 
         # Split the netloc into authentication info and the rest if needed
         auth, _, host_and_port = parts.netloc.rpartition("@")
@@ -98,8 +99,11 @@ class Factory(Generic[T]):
                 pass
             parameters[k] = v
 
+        # Split the scheme into base and middleware
+        base_type, *middleware = parts.scheme.split("+")
+
         # Return the result in dict-styled format
-        result = {"type": parts.scheme, "parameters": parameters}
+        result = {"type": base_type, "middleware": middleware, "parameters": parameters}
         if host:
             result["host"] = host
         if port is not None:
@@ -248,11 +252,43 @@ class Factory(Generic[T]):
             self._registry[name] = klass
             return klass
 
+    def register_middleware(
+        self, name: str, middleware: Optional[Callable[[T], T]] = None
+    ):
+        """Registers the given middleware for this factory with the given name, or
+        returns a decorator that will register an arbitrary middleware with the given
+        name (if no class is specified).
+
+        Parameters:
+            name: the name that will be used in the factory to refer
+                to the given middleware. See the `create()`_ method
+                for more information about how this name is used.
+            middleware: a middleware that wraps an existing connection or listener
+                instance when called with an existing connection or listener.
+
+        Returns:
+            when ``middleware`` is not ``None``, returns the middleware itself.
+            When ``middleware`` is ``None``, returns a decorator that can be
+            applied on a middleware to register it with the given name in this
+            factory.
+        """
+        if middleware is None:
+            return partial(self.register_middleware, name)
+        else:
+            self._middleware_registry[name] = middleware
+            return middleware
+
     def unregister(self, name: str) -> None:
         """Unregisters the class identified with the given name from this
         factory.
         """
         del self._registry[name]
+
+    def unregister_middleware(self, name: str) -> None:
+        """Unregisters the middleware identified with the given name from this
+        factory.
+        """
+        del self._middleware_registry[name]
 
     @contextmanager
     def use(self, klass: Callable[..., T], name: str) -> Iterator[None]:
@@ -271,6 +307,24 @@ class Factory(Generic[T]):
             self.unregister(name)
             if old_klass is not None:
                 self.register(name, old_klass)
+
+    @contextmanager
+    def use_middleware(self, klass: Callable[[T], T], name: str) -> Iterator[None]:
+        """Context manager temporarily registers the given middleware for this
+        factory with the given name and unregisters it when the context is exited.
+
+        This function allows the user to safely override a middleware associated
+        to a given name with another one. If the name is already taken by another
+        middleware, the old middleware will be restored upon exiting the context.
+        """
+        old_middleware = self._middleware_registry.get(name)
+        try:
+            self.register_middleware(name, klass)
+            yield
+        finally:
+            self.unregister_middleware(name)
+            if old_middleware is not None:
+                self.register_middleware(name, old_middleware)
 
     def __call__(self, *args, **kwds):
         """Forwards the invocation to the `create()`_ method."""

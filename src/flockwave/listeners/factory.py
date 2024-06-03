@@ -1,10 +1,8 @@
 from functools import partial
-from typing import TYPE_CHECKING
 
 from ..connections.factory import Factory
 
-if TYPE_CHECKING:
-    from .base import Listener
+from .base import Listener
 
 
 create_listener = Factory[Listener]()

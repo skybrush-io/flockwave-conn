@@ -1,4 +1,6 @@
 from flockwave.connections import create_connection, DummyConnection
+from flockwave.connections.middleware import LoggingMiddleware
+
 from trio import move_on_after
 
 
@@ -25,6 +27,12 @@ async def test_dummy_context_manager():
 
 async def test_dummy_create_with_factory():
     assert isinstance(create_connection("dummy"), DummyConnection)
+
+
+async def test_dummy_create_with_factory_and_middleware():
+    logger = LoggingMiddleware.create()
+    with create_connection.use_middleware(logger, "log"):
+        assert isinstance(create_connection("dummy+log"), DummyConnection)
 
 
 async def test_dummy_write():
