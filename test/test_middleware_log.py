@@ -1,0 +1,28 @@
+from flockwave.connections import create_loopback_connection_pair
+from flockwave.connections.middleware import LoggingMiddleware
+
+
+async def test_log_read():
+    foo, bar = create_loopback_connection_pair(bytes, 1)
+
+    foo_log: list[str] = []
+    bar_log: list[str] = []
+
+    async with (
+        LoggingMiddleware(foo, writer=foo_log.append) as foo_with_logging,
+        LoggingMiddleware(bar, writer=bar_log.append) as bar_with_logging,
+    ):
+        assert isinstance(foo_with_logging, foo.__class__)
+        assert isinstance(bar_with_logging, bar.__class__)
+
+        await foo_with_logging.write(b"hello world\x01\x02\x03")
+        data = await bar_with_logging.read()
+
+        assert data == b"hello world\x01\x02\x03"
+
+    assert foo_log == [
+        "--> | 68 65 6c 6c 6f 20 77 6f 72 6c 64 01 02 03       | hello world..."
+    ]
+    assert bar_log == [
+        "<-- | 68 65 6c 6c 6f 20 77 6f 72 6c 64 01 02 03       | hello world..."
+    ]
