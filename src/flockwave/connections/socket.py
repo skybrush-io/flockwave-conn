@@ -337,6 +337,7 @@ class UDPListenerConnection(
     _address: IPAddressAndPort
     _allow_broadcast: bool
     _broadcast_interface: Optional[str]
+    _broadcast_port: Optional[int]
     _multicast_interface: Optional[str]
     _multicast_ttl: Optional[int]
 
@@ -619,6 +620,7 @@ class SubnetBindingUDPListenerConnection(UDPListenerConnection):
 
     _broadcast_address: Optional[IPAddressAndPort]
     _broadcast_address_from_network: Optional[IPAddressAndPort]
+    _network: Union[IPv4Network, IPv6Network]
 
     def __init__(
         self,

@@ -227,7 +227,7 @@ class Factory(Generic[T]):
 
         return result
 
-    def register(self, name: str, klass: Optional[Callable[..., T]] = None):
+    def register(self, name: str, klass=None):
         """Registers the given class for this factory with the given name, or
         returns a decorator that will register an arbitrary class with the given
         name (if no class is specified).
