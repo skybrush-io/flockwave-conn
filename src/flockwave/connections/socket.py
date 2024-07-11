@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import, print_function
 
+from dataclasses import dataclass
 import struct
 
 from abc import abstractmethod
@@ -20,11 +21,12 @@ from trio.socket import (
     SO_BROADCAST,
     SocketType,
 )
-from typing import cast, Optional, Union
+from typing import Literal, cast, Optional, Union
 
 from flockwave.networking import (
     create_socket,
     find_interfaces_in_network,
+    get_address_of_network_interface,
     get_broadcast_address_of_network_interface,
     resolve_network_interface_or_address,
 )
@@ -52,7 +54,8 @@ __all__ = (
 
 class InternetAddressMixin:
     """Mixin class that adds an "address" property to a connection, consisting
-    of an IP address and a port."""
+    of an IP address and a port.
+    """
 
     _address: Optional[IPAddressAndPort]
 
@@ -91,6 +94,75 @@ class InternetAddressMixin:
             raise RuntimeError("socket is not bound to an IP address")
 
 
+@dataclass(frozen=True)
+class SocketBinding:
+    """Object that describes how to determine the address to bind a socket to.
+
+    Socket connections support the following types of bindings:
+
+      - Fixed IP address. Always binds the socket to the same IP address.
+
+      - Interface-based binding. Finds a network interface with a given name and
+        binds the socket to the IP address of the interface if it has one.
+
+      - Subnet-based binding. Finds a network interface that has an address in
+        a given IP subnet and binds the socket to the address of that network
+        interface.
+    """
+
+    mode: Literal["fixed", "interface", "subnet"] = "fixed"
+    """The type of the socket binding."""
+
+    value: str = ""
+    """The IP address to bind to in case of a fixed binding, or the name of the
+    interface in interface-based binding, or the subnet specification in case
+    of a subnet-based binding.
+    """
+
+    @classmethod
+    def fixed(cls, address: str):
+        return cls("fixed", address)
+
+    @classmethod
+    def to_interface(cls, interface: str):
+        return cls("interface", interface)
+
+    @classmethod
+    def to_subnet(cls, subnet: str):
+        return cls("subnet", subnet)
+
+    def __call__(self) -> str:
+        """Resolves the IP address to bind to.
+
+        Returns:
+            the IP address to bind the socket to
+
+        Raises:
+            ConnectionError: if a non-fixed binding mode is specified and it is
+                not possible to find a network interface satisfying the binding
+                conditions.
+        """
+        if self.mode == "fixed":
+            return self.value
+        elif self.mode == "interface":
+            try:
+                return get_address_of_network_interface(self.value)
+            except ValueError:
+                raise ConnectionError(
+                    f"Network interface {self.value!r} has no IP address"
+                ) from None
+        elif self.mode == "subnet":
+            candidates = find_interfaces_in_network(self.value)
+            if candidates:
+                return candidates[0][1]
+            else:
+                raise ConnectionError(
+                    f"No network interface corresponds to subnet {self.value!r}"
+                )
+        else:
+            raise ValueError("Unknown socket binding mode: {self.mode!r}")
+
+
 class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
     """Base class for connection objects using TCP or UDP sockets."""
 
@@ -106,6 +178,10 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
         """Returns the IP address and port of the socket, in the form of a
         tuple.
         """
+        # The policy in this getter is that we return the address of the
+        # socket itself if it is not None, irrespectively of what was set
+        # before. We reach out to the private _address property only if the
+        # socket is not bound
         if self._socket is None:
             # No socket yet; try to obtain the address from the "_address"
             # property instead
@@ -135,16 +211,6 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
     async def _open(self):
         """Opens the socket connection."""
         self._socket = await self._create_and_open_socket()
-
-    def _extract_address(self, address):
-        """Extracts the *real* IP address and port from the given object.
-        The object may be a SocketConnectionBase_, a tuple consisting
-        of the IP address and port, or ``None``. Returns a tuple consisting
-        of the IP address and port or ``None``.
-        """
-        if isinstance(address, SocketConnectionBase):
-            address = address.address
-        return address
 
 
 @create_connection.register("tcp")
