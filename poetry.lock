@@ -259,13 +259,13 @@ reference = "fury"
 
 [[package]]
 name = "flockwave-net"
-version = "7.0.2"
+version = "7.0.3"
 description = "Networking related functions for apps based on the Flockwave framework"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "flockwave-net-7.0.2.tar.gz", hash = "sha256:90d305922fa016f6c753c4af1e3deb6744cbf5c75e5e596503219fb99ce2afd5"},
-    {file = "flockwave_net-7.0.2-py3-none-any.whl", hash = "sha256:73386441a957aea5bca26eca6906acf550157df9f83ef3c619b683014476a020"},
+    {file = "flockwave-net-7.0.3.tar.gz", hash = "sha256:e5d87774ed97107c3aab499b3f26807c4fcbf03e439727a814a53841e27395f9"},
+    {file = "flockwave_net-7.0.3-py3-none-any.whl", hash = "sha256:6e344bce792177c9d7f49bdfa47e5ae18c3ffeded4268dc8ef9117512b48a583"},
 ]
 
 [package.dependencies]
@@ -715,13 +715,13 @@ files = [
 
 [[package]]
 name = "trio"
-version = "0.25.1"
+version = "0.26.0"
 description = "A friendly Python library for async concurrency and I/O"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "trio-0.25.1-py3-none-any.whl", hash = "sha256:e42617ba091e7b2e50c899052e83a3c403101841de925187f61e7b7eaebdf3fb"},
-    {file = "trio-0.25.1.tar.gz", hash = "sha256:9f5314f014ea3af489e77b001861c535005c3858d38ec46b6b071ebfa339d7fb"},
+    {file = "trio-0.26.0-py3-none-any.whl", hash = "sha256:bb9c1b259591af941fccfbabbdc65bc7ed764bd2db76428454c894cd5e3d2032"},
+    {file = "trio-0.26.0.tar.gz", hash = "sha256:67c5ec3265dd4abc7b1d1ab9ca4fe4c25b896f9c93dac73713778adab487f9c4"},
 ]
 
 [package.dependencies]
@@ -845,4 +845,4 @@ serial = ["pyserial"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "7bd029dec7953d50504587cd1260b4d25a00fe196f8baa4b566b9699d60af479"
+content-hash = "633e6e7a190a45176351e5d4f4fe23ef1dccdfb4f253d5c3ab582ab4f897e8d1"
