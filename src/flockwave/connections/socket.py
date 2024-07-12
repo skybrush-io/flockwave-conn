@@ -95,7 +95,7 @@ class InternetAddressMixin:
             raise RuntimeError("socket is not bound to an IP address")
 
 
-@dataclass(frozen=True)
+@dataclass
 class SocketBinding:
     """Object that describes how to determine the address to bind a socket to.
 
@@ -110,6 +110,10 @@ class SocketBinding:
       - Subnet-based binding. Finds a network interface that has an address in
         a given IP subnet and binds the socket to the address of that network
         interface.
+
+    For interface and subnet-based binding, the binding object can be instructed
+    to bind to the _broadcast_ address instead of the address of the network
+    interface itself. Use the `bind_to_broadcast()` setter to achieve this.
     """
 
     mode: Literal["fixed", "interface", "subnet"] = "fixed"
@@ -123,6 +127,11 @@ class SocketBinding:
 
     port: int = 0
     """The port to bind to."""
+
+    _bind_to_broadcast: bool = False
+    """Whether to bind to the broadcast address of the interface instead of
+    to its own address. Ignored for fixed bindings.
+    """
 
     @classmethod
     def fixed(cls, host: str, port: int = 0):
@@ -142,6 +151,12 @@ class SocketBinding:
         otherwise returns ``None``.
         """
         return (self.value, self.port) if self.mode == "fixed" else None
+
+    def bind_to_broadcast(self, value: bool = True) -> None:
+        """Instructs the binding object to bind to the broadcast address of the
+        interface in subnet-bound or interface-bound modes.
+        """
+        self._bind_to_broadcast = bool(value)
 
     async def get_broadcast_address(self) -> str:
         """Returns the IP address to send broadcast messages to.
@@ -197,7 +212,11 @@ class SocketBinding:
         elif self.mode == "interface":
             try:
                 return await to_thread.run_sync(
-                    get_address_of_network_interface, self.value, abandon_on_cancel=True
+                    get_broadcast_address_of_network_interface
+                    if self._bind_to_broadcast
+                    else get_address_of_network_interface,
+                    self.value,
+                    abandon_on_cancel=True,
                 )
             except ValueError:
                 raise ConnectionError(
@@ -208,7 +227,18 @@ class SocketBinding:
                 find_interfaces_in_network, self.value, abandon_on_cancel=True
             )
             if candidates:
-                return candidates[0][1]
+                interface, address, network = candidates[0]
+                if self._bind_to_broadcast:
+                    network = ip_network(network) if network else None
+                    if network is None:
+                        address = await to_thread.run_sync(
+                            get_broadcast_address_of_network_interface,
+                            interface,
+                            abandon_on_cancel=True,
+                        )
+                    else:
+                        address = str(network.broadcast_address)
+                return address
             else:
                 raise ConnectionError(
                     f"No network interface corresponds to subnet {self.value!r}"
@@ -778,6 +808,9 @@ class BroadcastUDPListenerConnection(UDPListenerConnection):
         else:
             # We are probably given a network interface name
             super().__init__(interface=interface, port=port)
+
+        # Instruct the binding to bind to the broadcast address
+        self._binding.bind_to_broadcast()
 
 
 @create_connection.register("udp-multicast")
