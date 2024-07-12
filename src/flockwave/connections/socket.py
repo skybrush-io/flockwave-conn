@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import struct
 
 from abc import abstractmethod
+from errno import EADDRNOTAVAIL
 from ipaddress import ip_address, ip_network, IPv4Network, IPv6Network
 from trio import open_tcp_stream, to_thread, SocketStream
 from trio.socket import (
@@ -100,7 +101,8 @@ class SocketBinding:
 
     Socket connections support the following types of bindings:
 
-      - Fixed IP address. Always binds the socket to the same IP address.
+      - Fixed hostname or IP address. Always binds the socket to the same
+        hostname or IP address.
 
       - Interface-based binding. Finds a network interface with a given name and
         binds the socket to the IP address of the interface if it has one.
@@ -119,19 +121,67 @@ class SocketBinding:
     of a subnet-based binding.
     """
 
-    @classmethod
-    def fixed(cls, address: str):
-        return cls("fixed", address)
+    port: int = 0
+    """The port to bind to."""
 
     @classmethod
-    def to_interface(cls, interface: str):
-        return cls("interface", interface)
+    def fixed(cls, host: str, port: int = 0):
+        return cls("fixed", host, port)
 
     @classmethod
-    def to_subnet(cls, subnet: str):
-        return cls("subnet", subnet)
+    def to_interface(cls, interface: str, port: int = 0):
+        return cls("interface", interface, port)
 
-    def __call__(self) -> str:
+    @classmethod
+    def to_subnet(cls, subnet: Union[IPv4Network, IPv6Network, str], port: int = 0):
+        return cls("subnet", str(subnet), port)
+
+    @property
+    def fixed_address(self) -> Optional[IPAddressAndPort]:
+        """Returns the IP address and port to bind to if the binding is fixed,
+        otherwise returns ``None``.
+        """
+        return (self.value, self.port) if self.mode == "fixed" else None
+
+    async def get_broadcast_address(self) -> str:
+        """Returns the IP address to send broadcast messages to.
+
+        In fixed mode, broadcast messages are sent to 255.255.255.255 as we do
+        not know which subnet to narrow it down to.
+
+        In interface-bound mode, broadcast messages are sent to the broadcast
+        address of the interface.
+
+        In subnet-bound mode, broadcast messages are sent to the broadcast
+        address of the subnet.
+        """
+        if self.mode == "fixed":
+            return "255.255.255.255"
+        elif self.mode == "interface":
+            return await to_thread.run_sync(
+                get_broadcast_address_of_network_interface, self.value
+            )
+        elif self.mode == "subnet":
+            network = ip_network(self.value)
+            return str(network.broadcast_address)
+        else:
+            raise ValueError("Unknown socket binding mode: {self.mode!r}")
+
+    async def resolve(self) -> IPAddressAndPort:
+        """Resolves the IP address and port to bind to.
+
+        Returns:
+            the IP address and port to bind the socket to
+
+        Raises:
+            ConnectionError: if a non-fixed binding mode is specified and it is
+                not possible to find a network interface satisfying the binding
+                conditions.
+        """
+        address = await self._resolve_address()
+        return address, self.port
+
+    async def _resolve_address(self) -> str:
         """Resolves the IP address to bind to.
 
         Returns:
@@ -146,13 +196,17 @@ class SocketBinding:
             return self.value
         elif self.mode == "interface":
             try:
-                return get_address_of_network_interface(self.value)
+                return await to_thread.run_sync(
+                    get_address_of_network_interface, self.value, abandon_on_cancel=True
+                )
             except ValueError:
                 raise ConnectionError(
                     f"Network interface {self.value!r} has no IP address"
                 ) from None
         elif self.mode == "subnet":
-            candidates = find_interfaces_in_network(self.value)
+            candidates = await to_thread.run_sync(
+                find_interfaces_in_network, self.value, abandon_on_cancel=True
+            )
             if candidates:
                 return candidates[0][1]
             else:
@@ -191,7 +245,7 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
                 return super().address
         else:
             # Ask the socket for its address
-            return self._socket.getsockname()  # type: ignore
+            return self._socket.getsockname()
 
     @property
     def socket(self):
@@ -200,7 +254,8 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
 
     async def _close(self):
         """Closes the socket connection."""
-        self._socket.close()  # type: ignore
+        assert self._socket is not None
+        self._socket.close()
         self._socket = None
 
     @abstractmethod
@@ -272,8 +327,8 @@ class TCPListenerConnection(
     incoming TCP connections on a specific port.
     """
 
-    _address: IPAddressAndPort
     _backlog: int
+    _binding: SocketBinding
 
     def __init__(self, host: str = "", port: int = 0, *, backlog: int = -1, **kwds):
         """Constructor.
@@ -287,8 +342,12 @@ class TCPListenerConnection(
         """
         SocketConnectionBase.__init__(self)
         ListenerConnection.__init__(self)
-        self._address = (host or "", port or 0)
+
         self._backlog = backlog
+        self._binding = SocketBinding.fixed(host or "", port or 0)
+
+        # Maintain compatibility with InternetAddressMixin
+        self._address = self._binding.fixed_address
 
     async def _create_and_open_socket(self) -> SocketType:
         """Creates and opens the socket that the connection will use."""
@@ -300,14 +359,16 @@ class TCPListenerConnection(
             sock.listen()
         return cast(SocketType, sock)
 
-    async def _bind_socket(self, sock) -> None:
+    async def _bind_socket(self, sock: SocketType) -> None:
         """Binds the given TCP socket to the address where it should listen for
         incoming TCP connections.
         """
-        await sock.bind(self._address)
+        address = await self._binding.resolve()
+        await sock.bind(address)
 
     async def accept(self) -> IncomingTCPStreamConnection:
-        client_socket, address = await self._socket.accept()  # type: ignore
+        assert self._socket is not None
+        client_socket, address = await self._socket.accept()
         connection = IncomingTCPStreamConnection(address, client_socket)
         await connection.open()
         return connection
@@ -364,7 +425,7 @@ class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
                 read.
         """
         if self._socket is not None:
-            data = await self._socket.recv(size, flags)  # type: ignore
+            data = await self._socket.recv(size, flags)
             if not data:
                 # Remote side closed connection
                 await self.close()
@@ -381,7 +442,7 @@ class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
                 call; see the UNIX manual for details.
         """
         if self._socket is not None:
-            await self._socket.send(data, flags)  # type: ignore
+            await self._socket.send(data, flags)
         else:
             raise RuntimeError("connection does not have a socket")
 
@@ -400,17 +461,50 @@ class UDPListenerConnection(
     to.
     """
 
-    _address: IPAddressAndPort
     _allow_broadcast: bool
-    _broadcast_interface: Optional[str]
-    _broadcast_port: Optional[int]
-    _multicast_interface: Optional[str]
-    _multicast_ttl: Optional[int]
+    """Whether broadcasts are allowed on this connection. Specified at
+    construction time.
+    """
+
+    _binding: SocketBinding
+    """Binding object that decides the IP address to bind to when the connection
+    is opened.
+    """
+
+    _broadcast_address: Optional[IPAddressAndPort] = None
+    """User-defined broadcast address; ``None`` if the user did not specify a
+    broadcast address explicitly.
+    """
+
+    _broadcast_address_fallback: Optional[IPAddressAndPort] = None
+    """Derived broadcast address when the socket is open and it is bound to a
+    subnet or an interface; ``None`` if there is no derived broadcast address.
+    """
+
+    _broadcast_interface: Optional[str] = None
+    """Interface to send broadcast packets to, as specified by the user at
+    construction time. ``None`` if the user has no preference.
+    """
+
+    _broadcast_port: Optional[int] = None
+    """Port to send broadcast packets to."""
+
+    _multicast_interface: Optional[str] = None
+    """Interface to send multicast packets to, as specified by the user at
+    construction time. ``None`` if the user has no preference.
+    """
+
+    _multicast_ttl: Optional[int] = None
+    """Multicast packet time-to-live values, as specified by the user at
+    construction time. ``None`` if the user has no preference.
+    """
 
     def __init__(
         self,
         host: Optional[str] = "",
         port: int = 0,
+        interface: Optional[str] = None,
+        subnet: Optional[Union[IPv4Network, IPv6Network, str]] = None,
         allow_broadcast: bool = False,
         broadcast_interface: Optional[str] = None,
         broadcast_port: Optional[int] = None,
@@ -423,10 +517,20 @@ class UDPListenerConnection(
         Parameters:
             host: the IP address or hostname that the socket will bind to. The
                 default value means that the socket will bind to all IP
-                addresses of the local machine.
+                addresses of the local machine, unless a subnet or an interface
+                is specified in `subnet` or `interface`.
             port: the port number that the socket will bind to. Zero means that
                 the socket will choose a random ephemeral port number on its
                 own.
+            interface: the network interface to bind to. When specified, the
+                socket will bind to the IP address of the network interface if
+                it has one. ``None`` means not to bind to a specific interface.
+                Takes precedence over `host` and `subnet`.
+            subnet: the IP subnet to bind to. When specified, the socket will
+                bind to the first network interface that has an IP address in
+                the given subnet. ``None`` means not to bind to a specific
+                subnet. Takes precedence over `host`, but is overridden by
+                `interface`.
             allow_broadcast: whether to allow the socket to send broadcast
                 packets. Note that if you want to receive broadcast packets as
                 well as sending them, the host needs to be set to the empty
@@ -449,17 +553,33 @@ class UDPListenerConnection(
                 TTL value of outbound packets.
         """
         super().__init__()
-        self._address = (host or "", port or 0)
-        self._allow_broadcast = bool(int(allow_broadcast))
+
+        port = port or 0
+        if interface is not None:
+            # Bind to a specific network interface
+            self._binding = SocketBinding.to_interface(interface, port)
+        elif subnet is not None:
+            # Bind to a specific subnet
+            self._binding = SocketBinding.to_subnet(subnet, port)
+        else:
+            # Bind to a fixed IP address and port
+            self._binding = SocketBinding.fixed(host or "", port)
+
         self._broadcast_interface = broadcast_interface
         self._broadcast_port = (
             int(broadcast_port) if broadcast_port is not None else None
         )
+
         self._multicast_interface = multicast_interface
         self._multicast_ttl = int(multicast_ttl) if multicast_ttl is not None else None
 
         if self._broadcast_port is not None:
             self._allow_broadcast = True
+        else:
+            self._allow_broadcast = bool(int(allow_broadcast))
+
+        # Maintain compatibility with InternetAddressMixin
+        self._address = self._binding.fixed_address
 
     async def _create_and_open_socket(self):
         """Creates a new non-blocking reusable UDP socket that is not bound
@@ -467,35 +587,52 @@ class UDPListenerConnection(
         """
         sock = create_socket(SOCK_DGRAM)
 
+        # Set the broadcast interface of the socket if the user specified one
+        # explicitly
         if self._allow_broadcast:
+            effective_broadcast_interface: Optional[str] = None
+
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
             if self._broadcast_interface is not None:
+                # User specified a broadcast interface explicitly
+                effective_broadcast_interface = await to_thread.run_sync(
+                    resolve_network_interface_or_address, self._broadcast_interface
+                )
+
+            if effective_broadcast_interface is not None:
                 try:
                     from socket import IP_BROADCAST_IF  # type: ignore
                 except ImportError:
                     raise RuntimeError(
                         "this OS does not support setting the broadcast interface of a socket"
                     ) from None
-                broadcast_interface = await to_thread.run_sync(
-                    resolve_network_interface_or_address, self._broadcast_interface
-                )
                 sock.setsockopt(
-                    IPPROTO_IP, IP_BROADCAST_IF, inet_aton(broadcast_interface)
+                    IPPROTO_IP,
+                    IP_BROADCAST_IF,
+                    inet_aton(effective_broadcast_interface),
                 )
 
+        # Set the multicast TTL value if the user specified one explicitly
         if self._multicast_ttl is not None:
             sock.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, self._multicast_ttl)
+
+        # Set the multicast interface if the user specified one explicitly
         if self._multicast_interface is not None:
             multicast_interface = await to_thread.run_sync(
                 resolve_network_interface_or_address, self._multicast_interface
             )
             sock.setsockopt(IPPROTO_IP, IP_MULTICAST_IF, inet_aton(multicast_interface))
 
+        # Now we can bind the socket to its designated address
         await self._bind_socket(sock)
 
         # Assign the broadcast address to this socket if the user hasn't assigned
         # one yet
         if self._allow_broadcast:
+            # If broadcast is allowed and no broadcast port is defined, use the
+            # same port for broadcasting as the one used for unicasting, so we
+            # need to get the port that the socket is bound to.
+            #
             # Note that we need to do this here; by the time we get here, we
             # already have our definite port number even if originally it was
             # defined as zero (i.e. the OS should pick one)
@@ -504,20 +641,47 @@ class UDPListenerConnection(
                 if isinstance(new_address, tuple) and len(new_address) > 1:
                     self._broadcast_port = new_address[1]
 
-            # Do not overwrite any user-defined broadcast address
-            if (
-                getattr(self, "broadcast_address", None) is None
-                and self._broadcast_port is not None
-            ):
-                self.broadcast_address = ("255.255.255.255", self._broadcast_port)
+            # Derive the broadcast address and store it in _broadcast_address_fallback.
+            # This can be overridden explicitly by the user.
+            if self._broadcast_port is not None:
+                broadcast_host = await self._binding.get_broadcast_address()
+                self._broadcast_address_fallback = (
+                    broadcast_host,
+                    self._broadcast_port,
+                )
 
         return sock
 
-    async def _bind_socket(self, sock) -> None:
+    async def _bind_socket(self, sock: SocketType) -> None:
         """Binds the given UDP socket to the address where it should listen for
         incoming UDP packets.
         """
-        await sock.bind(self._address)
+        address = await self._binding.resolve()
+        await sock.bind(address)
+
+    async def _close(self):
+        """Closes the socket connection."""
+        self._broadcast_address_fallback = None
+        return await super()._close()
+
+    @property
+    def broadcast_address(self) -> Optional[IPAddressAndPort]:
+        """The broadcast address of the connection.
+
+        This can be overridden explicitly by setting the property to a specific
+        value. When it is not overridden or set to ``None``, the broadcast
+        address will be derived from the subnet if the connection is subnet-bound
+        or from the interface if the connection is interface-bound.
+        """
+        return (
+            self._broadcast_address
+            if self._broadcast_address is not None
+            else self._broadcast_address_fallback
+        )
+
+    @broadcast_address.setter
+    def broadcast_address(self, value: Optional[IPAddressAndPort]):
+        self._broadcast_address = value
 
     async def read(
         self, size: int = 4096, flags: int = 0
@@ -535,7 +699,7 @@ class UDPListenerConnection(
                 read.
         """
         if self._socket is not None:
-            data, addr = await self._socket.recvfrom(size, flags)  # type: ignore
+            data, addr = await self._socket.recvfrom(size, flags)
             if not data:
                 # Remote side closed connection
                 await self.close()
@@ -553,7 +717,15 @@ class UDPListenerConnection(
         """
         if self._socket is not None:
             buf, address = data
-            await self._socket.sendto(buf, flags, address)  # type: ignore
+            try:
+                await self._socket.sendto(buf, flags, address)
+            except OSError as ex:
+                if ex.errno == EADDRNOTAVAIL:
+                    # Address not available any more. Maybe the interface
+                    # has changed its address? We have seen this on macOS for
+                    # sure.
+                    await self.close()
+                raise
         else:
             raise RuntimeError("connection does not have a socket")
 
@@ -572,7 +744,8 @@ class BroadcastUDPListenerConnection(UDPListenerConnection):
     """Connection object that binds to the broadcast address of a given
     subnet or a given interface and listens for incoming packets from there.
 
-    The connection cannot be used for sending packets.
+    The connection is for inbound packets only; it cannot be used for sending
+    packets.
     """
 
     can_send: bool = False
@@ -592,20 +765,19 @@ class BroadcastUDPListenerConnection(UDPListenerConnection):
             path (str): convenience alias for `interface` so we can use this class
                 with `create_connection.register()`
         """
-        interface = interface or kwds.get("path")
-
         if interface is None:
-            address = "255.255.255.255"
-        else:
-            try:
-                network = ip_network(interface)
-                address = str(network.broadcast_address)
-            except ValueError:
-                # Not an IPv4 network in slashed notation; try it as an
-                # interface name
-                address = get_broadcast_address_of_network_interface(interface)
+            interface = kwds.get("path")
+            if interface is None:
+                raise ValueError("either 'interface' or 'path' must be given")
+            else:
+                interface = str(interface)
 
-        super().__init__(host=address, port=port)
+        if "/" in interface:
+            # We are probably given a subnet
+            super().__init__(subnet=interface, port=port)
+        else:
+            # We are probably given a network interface name
+            super().__init__(interface=interface, port=port)
 
 
 @create_connection.register("udp-multicast")
@@ -682,11 +854,10 @@ class SubnetBindingUDPListenerConnection(UDPListenerConnection):
 
     If there are multiple network interfaces that match the given subnet,
     the connection binds to the first one it finds.
-    """
 
-    _broadcast_address: Optional[IPAddressAndPort]
-    _broadcast_address_from_network: Optional[IPAddressAndPort]
-    _network: Union[IPv4Network, IPv6Network]
+    The connection allows broadcasts by default, unlike a regular UDP
+    listener connection, which does not.
+    """
 
     def __init__(
         self,
@@ -706,51 +877,16 @@ class SubnetBindingUDPListenerConnection(UDPListenerConnection):
             path (str): convenience alias for `network` so we can use this class
                 with `create_connection.register()`
         """
-
         if network is None:
-            network = kwds.get("path")
-            if network is None:
+            if "path" in kwds:
+                network = str(kwds["path"])
+            else:
                 raise ValueError("either 'network' or 'path' must be given")
 
-        super().__init__(port=port, **kwds)
+        if "allow_broadcast" not in kwds:
+            kwds["allow_broadcast"] = True
 
-        self._broadcast_address = None
-        self._network = ip_network(network)
-
-        if self._broadcast_port is not None:
-            self._broadcast_address_from_network = (
-                str(self._network.broadcast_address),
-                self._broadcast_port,
-            )
-        else:
-            self._broadcast_address_from_network = None
-
-    async def _bind_socket(self, sock) -> None:
-        """Binds the given UDP socket to the address where it should listen for
-        incoming UDP packets.
-        """
-        interfaces = find_interfaces_in_network(self._network)
-        if not interfaces:
-            raise ConnectionError("no network interface in the given network")
-
-        if self._address is None:
-            raise RuntimeError("UDP socket has no associated port")
-
-        self._address = (interfaces[0][1], self._address[1])
-        return await super()._bind_socket(sock)
-
-    @property
-    def broadcast_address(self) -> Optional[IPAddressAndPort]:
-        """The broadcast address of the subnet."""
-        return (
-            self._broadcast_address
-            if self._broadcast_address is not None
-            else self._broadcast_address_from_network
-        )
-
-    @broadcast_address.setter
-    def broadcast_address(self, value: Optional[IPAddressAndPort]):
-        self._broadcast_address = value
+        super().__init__(subnet=network, port=port, **kwds)
 
 
 @create_connection.register("unix")
