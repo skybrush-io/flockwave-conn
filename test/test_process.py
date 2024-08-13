@@ -16,7 +16,7 @@ async def test_process_connection_read(nursery):
         if not data:
             break
 
-        chunks.append(data)
+        chunks.append(data.replace(b"\r\n", b"\n"))
 
     assert b"".join(chunks) == b"foo\n" * 10
 
@@ -40,7 +40,7 @@ async def test_process_connection_echo(nursery):
         if not data:
             break
 
-        chunks += data
+        chunks += data.replace(b"\r\n", b"\n")
 
     assert chunks == b"foobar\nbaz\n"
 
