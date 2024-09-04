@@ -5,6 +5,73 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Added `BroadcastConnection` interface to mark connections that support
+  broadcasting.
+
+- Added `get_connection_capabilities()` to query the capabilities of a
+  connection. This replaces the earlier undocumented `can_send` class
+  properties.
+
+## [7.2.1]
+
+### Fixed
+
+- BroadcastUDPListenerConnection now binds to the broadcast address.
+
+## [7.2.0]
+
+### Added
+
+- Added support for binding a UDP connection to a specific interface.
+
+## [7.1.0]
+
+### Added
+
+- Added logging middleware for connections.
+
+## [7.0.0]
+
+### Changed
+
+- Updated Trio to 0.24, which introduces breaking changes in the exception
+  handling, hence it deserves a major version bump.
+
+## [6.2.0]
+
+### Removed
+
+- Removed non-public `_broadcast_ttl` from UDPListenerConnection.
+
+## [6.1.0]
+
+### Added
+
+- Added `create_loopback_connection_pair()` to create local loopback connections
+  for testing purposes.
+
+## [6.0.0]
+
+### Changed
+
+- `flockwave-net` dependency bumped to 4.0.
+
+## [5.3.0]
+
+### Changed
+
+- `DummyConnection` is now readable and writable.
+
+## [5.2.0]
+
+### Added
+
+- Added `FDConnection` as a base class.
+
 ## [5.1.0] - 2022-09-20
 
 ### Added

@@ -9,7 +9,7 @@ from enum import Enum
 from functools import partial
 from trio import CancelScope, Event, Nursery, TASK_STATUS_IGNORED, wrap_file
 from trio_util import AsyncBool
-from typing import Any, Callable, Generic, Optional, TypeVar
+from typing import Any, Callable, Generic, Optional, Protocol, TypeVar
 
 
 __all__ = (
@@ -162,6 +162,21 @@ class RWConnection(ReadableConnection[RT], WritableConnection[WT]):
     """
 
     pass
+
+
+class BroadcastConnection(Connection, Generic[T]):
+    """Interface specification for connection objects that support
+    broadcasting.
+    """
+
+    @abstractmethod
+    async def broadcast(self, data: T):
+        """Broadcasts the given data on the connection.
+
+        Parameters:
+            data: the data to write
+        """
+        raise NotImplementedError
 
 
 class ConnectionBase(Connection):
@@ -319,6 +334,16 @@ class ConnectionBase(Connection):
         raise NotImplementedError
 
 
+class AsyncFileLike(Protocol):
+    """Interface specification for asynchronous file-like objects that can be
+    used in conjunction with FDConnectionBase_.
+    """
+
+    async def flush(self) -> None: ...
+    async def read(self, size: int = -1) -> bytes: ...
+    async def write(self, data: bytes) -> None: ...
+
+
 class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABCMeta):
     """Base class for connection objects that have an underlying numeric
     file handle or file-like object.
@@ -335,12 +360,23 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABC
         """
     )
 
+    _file_handle: Optional[int] = None
+    """The file handle associated to the connection."""
+
+    _file_handle_owned: bool = False
+    """Specifies whether the file handle is owned by this connection and should
+    be closed when the connection is closed.
+    """
+
+    _file_object: Optional[AsyncFileLike] = None
+    """The file-like object associated to the connection."""
+
+    autoflush: bool = False
+    """Whether to flush the file handle automatically after each write."""
+
     def __init__(self, autoflush: bool = False):
         """Constructor."""
         super().__init__()
-        self._file_handle: Optional[int] = None
-        self._file_object = None
-        self._file_handle_owned: bool = False
         self.autoflush = bool(autoflush)
 
     def fileno(self) -> Optional[int]:
@@ -476,6 +512,7 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABC
             the data that was read, or an empty bytes object if the end of file
             was reached
         """
+        assert self._file_object is not None
         return await self._file_object.read(size)
 
     async def write(self, data: bytes) -> None:
@@ -484,6 +521,7 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABC
         Parameters:
             data: the data to write
         """
+        assert self._file_object is not None
         await self._file_object.write(data)
         if self.autoflush:
             await self.flush()

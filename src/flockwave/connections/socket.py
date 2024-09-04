@@ -33,11 +33,13 @@ from flockwave.networking import (
 )
 
 from .base import (
+    BroadcastConnection,
     ConnectionBase,
     ListenerConnection,
     RWConnection,
 )
-from .errors import ConnectionError
+from .capabilities import Capabilities, CapabilitySupport
+from .errors import ConnectionError, NoBroadcastAddressError
 from .factory import create_connection
 from .stream import StreamConnectionBase
 from .types import IPAddressAndPort
@@ -481,6 +483,8 @@ class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
 class UDPListenerConnection(
     SocketConnectionBase,
     RWConnection[tuple[bytes, IPAddressAndPort], tuple[bytes, IPAddressAndPort]],
+    BroadcastConnection[bytes],
+    CapabilitySupport,
 ):
     """Connection object that uses a UDP socket that listens on a specific
     IP address and port.
@@ -501,16 +505,6 @@ class UDPListenerConnection(
     is opened.
     """
 
-    _broadcast_address: Optional[IPAddressAndPort] = None
-    """User-defined broadcast address; ``None`` if the user did not specify a
-    broadcast address explicitly.
-    """
-
-    _broadcast_address_fallback: Optional[IPAddressAndPort] = None
-    """Derived broadcast address when the socket is open and it is bound to a
-    subnet or an interface; ``None`` if there is no derived broadcast address.
-    """
-
     _broadcast_interface: Optional[str] = None
     """Interface to send broadcast packets to, as specified by the user at
     construction time. ``None`` if the user has no preference.
@@ -518,6 +512,11 @@ class UDPListenerConnection(
 
     _broadcast_port: Optional[int] = None
     """Port to send broadcast packets to."""
+
+    _inferred_broadcast_address: Optional[IPAddressAndPort] = None
+    """Inferred broadcast address when the socket is open and it is bound to a
+    subnet or an interface; ``None`` if there is no inferred broadcast address.
+    """
 
     _multicast_interface: Optional[str] = None
     """Interface to send multicast packets to, as specified by the user at
@@ -527,6 +526,11 @@ class UDPListenerConnection(
     _multicast_ttl: Optional[int] = None
     """Multicast packet time-to-live values, as specified by the user at
     construction time. ``None`` if the user has no preference.
+    """
+
+    _user_defined_broadcast_address: Optional[IPAddressAndPort] = None
+    """User-defined broadcast address; ``None`` if the user did not specify a
+    broadcast address explicitly.
     """
 
     def __init__(
@@ -671,11 +675,11 @@ class UDPListenerConnection(
                 if isinstance(new_address, tuple) and len(new_address) > 1:
                     self._broadcast_port = new_address[1]
 
-            # Derive the broadcast address and store it in _broadcast_address_fallback.
+            # Derive the broadcast address and store it in _inferred_broadcast_address.
             # This can be overridden explicitly by the user.
             if self._broadcast_port is not None:
                 broadcast_host = await self._binding.get_broadcast_address()
-                self._broadcast_address_fallback = (
+                self._inferred_broadcast_address = (
                     broadcast_host,
                     self._broadcast_port,
                 )
@@ -691,27 +695,60 @@ class UDPListenerConnection(
 
     async def _close(self):
         """Closes the socket connection."""
-        self._broadcast_address_fallback = None
+        self._inferred_broadcast_address = None
         return await super()._close()
+
+    def _get_capabilities(self) -> Capabilities:
+        return {"can_broadcast": True, "can_receive": True, "can_send": True}
 
     @property
     def broadcast_address(self) -> Optional[IPAddressAndPort]:
-        """The broadcast address of the connection.
+        """The current broadcast address of the connection.
 
-        This can be overridden explicitly by setting the property to a specific
-        value. When it is not overridden or set to ``None``, the broadcast
-        address will be derived from the subnet if the connection is subnet-bound
-        or from the interface if the connection is interface-bound.
+        Returns:
+            the address where broadcast messages are to be sent on this
+            connection _right now_, or ``None`` if there is no such address at
+            the moment (maybe because the connection is closed)
         """
-        return (
-            self._broadcast_address
-            if self._broadcast_address is not None
-            else self._broadcast_address_fallback
-        )
 
-    @broadcast_address.setter
-    def broadcast_address(self, value: Optional[IPAddressAndPort]):
-        self._broadcast_address = value
+    async def broadcast(self, data: bytes):
+        """Broadcasts the given data on the connection.
+
+        Parameters:
+            data: the bytes to write to the broadcast address of the connection
+
+        Raises:
+            NoBroadcastAddressError: when there is no broadcast address
+                associated to the connection
+        """
+        address = self.broadcast_address
+        if address is None:
+            raise NoBroadcastAddressError()
+        else:
+            return await self.write((data, address))
+
+    def clear_user_defined_broadcast_address(self):
+        """Clears the user-defined broadcast address of the connection, returning
+        it to a state where broadcast packets are sent to the default (inferred)
+        broadcast address.
+        """
+        self.set_user_defined_broadcast_address(None)
+
+    def set_user_defined_broadcast_address(self, address: Optional[IPAddressAndPort]):
+        """Sets the user-defined broadcast address of the connection.
+
+        User-defined broadcast address take precedence over the default (inferred)
+        broadcast address of the connection.
+
+        Args:
+            address: the address to set. Setting the address to ``None`` disables
+                the user-defined address and returns to the default (inferred)
+                broadcast address of the connection.
+        """
+        if not self._allow_broadcast and address is not None:
+            raise RuntimeError("Broadcasts are disabled on this connection")
+
+        self._user_defined_broadcast_address = address
 
     async def read(
         self, size: int = 4096, flags: int = 0
@@ -779,6 +816,11 @@ class BroadcastUDPListenerConnection(UDPListenerConnection):
     """
 
     can_send: bool = False
+    """Marker that indicates that the connection should not be used for sending
+    data.
+
+    Deprecated; use `get_capabilities()` instead.
+    """
 
     def __init__(self, interface: Optional[str] = None, port: int = 0, **kwds):
         """Constructor.
@@ -812,6 +854,9 @@ class BroadcastUDPListenerConnection(UDPListenerConnection):
         # Instruct the binding to bind to the broadcast address
         self._binding.bind_to_broadcast()
 
+    def _get_capabilities(self) -> Capabilities:
+        return {"can_broadcast": True, "can_receive": True, "can_send": True}
+
 
 @create_connection.register("udp-multicast")
 class MulticastUDPListenerConnection(UDPListenerConnection):
@@ -821,6 +866,11 @@ class MulticastUDPListenerConnection(UDPListenerConnection):
     """
 
     can_send: bool = False
+    """Marker that indicates that the connection should not be used for sending
+    data.
+
+    Deprecated; use `get_capabilities()` instead.
+    """
 
     def __init__(
         self,
@@ -877,6 +927,9 @@ class MulticastUDPListenerConnection(UDPListenerConnection):
         sock.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, req)
 
         return sock
+
+    def _get_capabilities(self) -> Capabilities:
+        return {"can_broadcast": True, "can_receive": True, "can_send": True}
 
 
 @create_connection.register("udp-subnet")
