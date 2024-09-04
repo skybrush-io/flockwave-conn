@@ -15,6 +15,7 @@ from .base import (
     RWConnection,
     WritableConnection,
 )
+from .capabilities import Capabilities, get_connection_capabilities
 from .channel import ChannelConnection
 from .dummy import DummyConnection
 from .factory import (
@@ -46,6 +47,7 @@ from .types import IPAddressAndPort
 
 __all__ = (
     "BroadcastUDPListenerConnection",
+    "Capabilities",
     "ChannelConnection",
     "Connection",
     "ConnectionBase",
@@ -74,6 +76,7 @@ __all__ = (
     "create_connection",
     "create_connection_factory",
     "create_loopback_connection_pair",
+    "get_connection_capabilities",
     "open_unix_listeners",
     "serve_unix",
     "supervise",
