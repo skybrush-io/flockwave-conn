@@ -1,11 +1,9 @@
 """Connections via TCP or UDP sockets."""
 
-from __future__ import absolute_import, print_function
-
-from dataclasses import dataclass
 import struct
 
 from abc import abstractmethod
+from dataclasses import dataclass
 from errno import EADDRNOTAVAIL
 from ipaddress import ip_address, ip_network, IPv4Network, IPv6Network
 from trio import open_tcp_stream, to_thread, SocketStream
@@ -708,7 +706,9 @@ class UDPListenerConnection(
         Returns:
             the address where broadcast messages are to be sent on this
             connection _right now_, or ``None`` if there is no such address at
-            the moment (maybe because the connection is closed)
+            the moment. The latter may happen if the connection is closed, but
+            there might also be other reasons. Users of this property must
+            anticipate ``None`` and handle it accordingly.
         """
 
     async def broadcast(self, data: bytes):
@@ -761,9 +761,8 @@ class UDPListenerConnection(
                 see the UNIX manual for details
 
         Returns:
-            (bytes, tuple): the received data and the address it was
-                received from, or ``(b"", None)`` if there was nothing to
-                read.
+            the received data and the address it was received from, or
+            ``(b"", None)`` if there was nothing to read.
         """
         if self._socket is not None:
             data, addr = await self._socket.recvfrom(size, flags)
