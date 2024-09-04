@@ -3,14 +3,16 @@ ReadableConnection_ and yields parsed message objects, or takes messages,
 encodes them and writes them to a WritableConnection_.
 """
 
+from __future__ import annotations
+
 from collections import deque
 from contextlib import asynccontextmanager
 from logging import Logger
 from trio import EndOfChannel
 from trio.abc import Channel
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Generic, Optional, Union, TYPE_CHECKING
 
-from ..connections import Connection
+from flockwave.connections.base import RWConnection
 
 from .types import Encoder, MessageType, Parser, RawType, RPCRequestHandler
 
@@ -21,14 +23,20 @@ if TYPE_CHECKING:
     from tinyrpc.protocols import RPCProtocol
 
 
-class MessageChannel(Channel[MessageType]):
+class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
     """Trio-style Channel_ that wraps a readable-writable connection and
     uses a parser to decode the messages read from the connection and an
     encoder to encode the messages to the wire format of the connection.
     """
 
+    _connection: RWConnection[RawType, RawType]
+    _encoder: Encoder[MessageType, RawType]
+    _parser: Parser[RawType, MessageType]
+
     @classmethod
-    def for_rpc_protocol(cls, protocol: "RPCProtocol", connection: Connection):
+    def for_rpc_protocol(
+        cls, protocol: RPCProtocol, connection: RWConnection[RawType, RawType]
+    ):
         """Helper method to construct a message channel that will send and
         receive messages using the given RPC protocol.
 
@@ -44,13 +52,13 @@ class MessageChannel(Channel[MessageType]):
         encoder = create_rpc_encoder(protocol=protocol)
 
         # Wrap the parser and the encoder in a MessageChannel
-        result = cls(connection, parser=parser, encoder=encoder)
+        result = cls(connection, parser=parser, encoder=encoder)  # type: ignore
         result._protocol = protocol
         return result
 
     def __init__(
         self,
-        connection: Connection,
+        connection: RWConnection[RawType, RawType],
         parser: Parser[RawType, MessageType],
         encoder: Encoder[MessageType, RawType],
     ):
