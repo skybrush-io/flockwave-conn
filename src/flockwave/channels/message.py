@@ -16,7 +16,14 @@ from flockwave.connections.base import BroadcastConnection, RWConnection
 from flockwave.connections.capabilities import get_connection_capabilities
 from flockwave.connections.errors import NoBroadcastAddressError
 
-from .types import Encoder, MessageType, Parser, RawType, RPCRequestHandler
+from .types import (
+    BroadcastMessageType,
+    Encoder,
+    MessageType,
+    Parser,
+    RawType,
+    RPCRequestHandler,
+)
 
 __all__ = ("BroadcastMessageChannel", "MessageChannel")
 
@@ -143,10 +150,15 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
         self._pending.extend(self._parser(data))
 
 
-class BroadcastMessageChannel(MessageChannel[MessageType, RawType]):
+class BroadcastMessageChannel(
+    Generic[MessageType, RawType, BroadcastMessageType],
+    MessageChannel[MessageType, RawType],
+):
     """MessageChannel_ subclass that provides a dedicated method for sending a
     message with broadcast semantics.
     """
+
+    _broadcast_encoder: Encoder[BroadcastMessageType, RawType]
 
     _can_broadcast: bool = False
     """Cached property that holds whether the underlying connection can
@@ -158,24 +170,27 @@ class BroadcastMessageChannel(MessageChannel[MessageType, RawType]):
         connection: RWConnection[RawType, RawType],
         parser: Parser[RawType, MessageType],
         encoder: Encoder[MessageType, RawType],
+        broadcast_encoder: Encoder[BroadcastMessageType, RawType],
     ):
         super().__init__(connection, parser, encoder)
+
+        self._broadcast_encoder = broadcast_encoder
 
         cap = get_connection_capabilities(self._connection)
         self._can_broadcast = cap["can_broadcast"]
 
-    async def broadcast(self, value: MessageType) -> None:
+    async def broadcast(self, value: BroadcastMessageType) -> None:
         """Broadcasts the given message on the channel. No-op if the underlying
         connection has no broadcast address at the moment but _could_ broadcast
         in theory. Falls back to sending the message if the underlying
         connection has no broadcast capabilities.
         """
+        encoded = self._broadcast_encoder(value)
         if self._can_broadcast:
-            encoded = self._encoder(value)
-            conn = cast(BroadcastConnection, self._connection)
+            conn = cast(BroadcastConnection[RawType], self._connection)
             try:
                 await conn.broadcast(encoded)
             except NoBroadcastAddressError:
                 pass
         else:
-            await self.send(value)
+            await self._connection.write(encoded)
