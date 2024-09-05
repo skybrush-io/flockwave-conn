@@ -710,6 +710,11 @@ class UDPListenerConnection(
             there might also be other reasons. Users of this property must
             anticipate ``None`` and handle it accordingly.
         """
+        return (
+            self._user_defined_broadcast_address
+            if self._user_defined_broadcast_address is not None
+            else self._inferred_broadcast_address
+        )
 
     async def broadcast(self, data: bytes):
         """Broadcasts the given data on the connection.
