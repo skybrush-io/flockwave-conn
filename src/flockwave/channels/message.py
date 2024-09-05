@@ -153,8 +153,13 @@ class BroadcastMessageChannel(MessageChannel[MessageType, RawType]):
     broadcast.
     """
 
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
+    def __init__(
+        self,
+        connection: RWConnection[RawType, RawType],
+        parser: Parser[RawType, MessageType],
+        encoder: Encoder[MessageType, RawType],
+    ):
+        super().__init__(connection, parser, encoder)
 
         cap = get_connection_capabilities(self._connection)
         self._can_broadcast = cap["can_broadcast"]
