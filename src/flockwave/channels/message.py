@@ -10,13 +10,15 @@ from contextlib import asynccontextmanager
 from logging import Logger
 from trio import EndOfChannel
 from trio.abc import Channel
-from typing import Generic, Optional, Union, TYPE_CHECKING
+from typing import Generic, Optional, Union, TYPE_CHECKING, cast
 
-from flockwave.connections.base import RWConnection
+from flockwave.connections.base import BroadcastConnection, RWConnection
+from flockwave.connections.capabilities import get_connection_capabilities
+from flockwave.connections.errors import NoBroadcastAddressError
 
 from .types import Encoder, MessageType, Parser, RawType, RPCRequestHandler
 
-__all__ = ("MessageChannel",)
+__all__ = ("BroadcastMessageChannel", "MessageChannel")
 
 if TYPE_CHECKING:
     from tinyrpc.dispatch import RPCDispatcher
@@ -139,3 +141,36 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
         if not data:
             raise EndOfChannel()
         self._pending.extend(self._parser(data))
+
+
+class BroadcastMessageChannel(MessageChannel[MessageType, RawType]):
+    """MessageChannel_ subclass that provides a dedicated method for sending a
+    message with broadcast semantics.
+    """
+
+    _can_broadcast: bool = False
+    """Cached property that holds whether the underlying connection can
+    broadcast.
+    """
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+        cap = get_connection_capabilities(self._connection)
+        self._can_broadcast = cap["can_broadcast"]
+
+    async def broadcast(self, value: MessageType) -> None:
+        """Broadcasts the given message on the channel. No-op if the underlying
+        connection has no broadcast address at the moment but _could_ broadcast
+        in theory. Falls back to sending the message if the underlying
+        connection has no broadcast capabilities.
+        """
+        if self._can_broadcast:
+            encoded = self._encoder(value)
+            conn = cast(BroadcastConnection, self._connection)
+            try:
+                await conn.broadcast(encoded)
+            except NoBroadcastAddressError:
+                pass
+        else:
+            await self.send(value)

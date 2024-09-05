@@ -13,6 +13,7 @@ from typing import Any, Callable, Generic, Optional, Protocol, TypeVar
 
 
 __all__ = (
+    "BroadcastConnection",
     "Connection",
     "ConnectionState",
     "ConnectionBase",

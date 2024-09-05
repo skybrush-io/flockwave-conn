@@ -481,7 +481,7 @@ class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
 class UDPListenerConnection(
     SocketConnectionBase,
     RWConnection[tuple[bytes, IPAddressAndPort], tuple[bytes, IPAddressAndPort]],
-    BroadcastConnection[bytes],
+    BroadcastConnection[Union[bytes, tuple[bytes, IPAddressAndPort]]],
     CapabilitySupport,
 ):
     """Connection object that uses a UDP socket that listens on a specific
@@ -716,16 +716,24 @@ class UDPListenerConnection(
             else self._inferred_broadcast_address
         )
 
-    async def broadcast(self, data: bytes):
+    async def broadcast(self, data: Union[bytes, tuple[bytes, IPAddressAndPort]]):
         """Broadcasts the given data on the connection.
 
         Parameters:
-            data: the bytes to write to the broadcast address of the connection
+            data: the bytes to write to the broadcast address of the connection,
+                or a tuple consisting of the bytes to broadcast and an address
+                (which will be ignored). Tuples are supported to ensure that
+                if you can call the `write()` method with an object, then you
+                can also call `broadcast()` with it; downstream projects like
+                `skybrush-server` may rely on this
 
         Raises:
             NoBroadcastAddressError: when there is no broadcast address
                 associated to the connection
         """
+        if isinstance(data, tuple):
+            data, _ = data
+
         address = self.broadcast_address
         if address is None:
             raise NoBroadcastAddressError()

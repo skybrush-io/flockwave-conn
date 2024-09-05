@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `BroadcastConnection` interface to mark connections that support
   broadcasting.
 
+- Added `BroadcastMessageChannel` as a counterpart to `MesssageChannel` for
+  connections that support broadcasting.
+
 - Added `get_connection_capabilities()` to query the capabilities of a
   connection. This replaces the earlier undocumented `can_send` class
   properties.
