@@ -180,6 +180,32 @@ class BroadcastConnection(Connection, Generic[T]):
         raise NotImplementedError
 
 
+class BroadcastAddressOverride(Generic[T]):
+    """Interface specification for connection objects that support
+    overriding their broadcast address.
+    """
+
+    def clear_user_defined_broadcast_address(self) -> None:
+        """Clears the user-defined broadcast address of the connection,
+        returning it to a state where the broadcast address is the default one.
+        """
+        self.set_user_defined_broadcast_address(None)
+
+    @abstractmethod
+    def set_user_defined_broadcast_address(self, address: Optional[T]) -> None:
+        """Sets the user-defined broadcast address of the connection.
+
+        User-defined broadcast address take precedence over the default
+        broadcast address of the connection.
+
+        Args:
+            address: the address to set. Setting the address to ``None`` disables
+                the user-defined address and returns to the default
+                broadcast address of the connection.
+        """
+        raise NotImplementedError
+
+
 class ConnectionBase(Connection):
     """Base class for stateful connection objects.
 

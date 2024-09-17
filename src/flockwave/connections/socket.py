@@ -31,6 +31,7 @@ from flockwave.networking import (
 )
 
 from .base import (
+    BroadcastAddressOverride,
     BroadcastConnection,
     ConnectionBase,
     ListenerConnection,
@@ -482,6 +483,7 @@ class UDPListenerConnection(
     SocketConnectionBase,
     RWConnection[tuple[bytes, IPAddressAndPort], tuple[bytes, IPAddressAndPort]],
     BroadcastConnection[Union[bytes, tuple[bytes, IPAddressAndPort]]],
+    BroadcastAddressOverride[IPAddressAndPort],
     CapabilitySupport,
 ):
     """Connection object that uses a UDP socket that listens on a specific
@@ -739,13 +741,6 @@ class UDPListenerConnection(
             raise NoBroadcastAddressError()
         else:
             return await self.write((data, address))
-
-    def clear_user_defined_broadcast_address(self):
-        """Clears the user-defined broadcast address of the connection, returning
-        it to a state where broadcast packets are sent to the default (inferred)
-        broadcast address.
-        """
-        self.set_user_defined_broadcast_address(None)
 
     def set_user_defined_broadcast_address(self, address: Optional[IPAddressAndPort]):
         """Sets the user-defined broadcast address of the connection.
