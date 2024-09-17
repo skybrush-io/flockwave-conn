@@ -5,19 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [8.2.0]
 
 ### Added
 
 - Added `BroadcastConnection` interface to mark connections that support
   broadcasting.
 
+- Added `BroadcastAddressOverride` interface to mark connections that support
+  overriding their broadcast addresses.
+
 - Added `BroadcastMessageChannel` as a counterpart to `MesssageChannel` for
   connections that support broadcasting.
 
 - Added `get_connection_capabilities()` to query the capabilities of a
   connection. This replaces the earlier undocumented `can_send` class
-  properties.
+  property.
 
 ## [7.2.1]
 
