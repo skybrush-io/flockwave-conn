@@ -7,6 +7,7 @@ disconnecting. Connection instances send signals when their state changes.
 """
 
 from .base import (
+    BroadcastAddressOverride,
     BroadcastConnection,
     Connection,
     ConnectionBase,
@@ -47,6 +48,7 @@ from .supervision import (
 from .types import IPAddressAndPort
 
 __all__ = (
+    "BroadcastAddressOverride",
     "BroadcastConnection",
     "BroadcastUDPListenerConnection",
     "Capabilities",
