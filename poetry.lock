@@ -952,5 +952,5 @@ serial = ["pyserial"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.9"
-content-hash = "2bfef204593288e602bf07ca6e4a4eae95716e2a7e5f670ee847db3b7b3f3174"
+python-versions = ">=3.9,<4.0"
+content-hash = "69f5fc10ba8d8cd51060d27d8432793a7eeb609d42063849cfe247f68c4a14d9"

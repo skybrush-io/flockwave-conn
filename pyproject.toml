@@ -1,32 +1,37 @@
-[tool.poetry]
+[project]
 name = "flockwave-conn"
 version = "8.2.0"
 description = "Connection objects for various data sources"
-authors = ["Tamas Nepusz <tamas@collmot.com>"]
-packages = [{ include = "flockwave", from = "src" }]
+authors = [{ name = "Tamas Nepusz", email = "tamas@collmot.com" }]
 license = "MIT"
+requires-python = ">=3.9,<4.0"
+dependencies = [
+    "blinker>=1.4",
+    "trio>=0.26.2",
+    "trio-util>=0.7.0",
+    "flockwave-parsers>=2.0.0",
+    "flockwave-net[async]>=7.0.3",
+    "flockwave-async>=1.4.0",
+    "wrapt>=1.16.0",
+]
+
+[project.optional-dependencies]
+rpc = ["tinyrpc[msgpack]>=1.1.7"]
+serial = ["pyserial>=3.5"]
+
+[tool.poetry]
+packages = [{ include = "flockwave", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-blinker = "^1.4"
-trio = ">=0.26.2"
-trio-util = ">=0.7.0"
-flockwave-parsers = { version = "^2.0.0", source = "fury" }
-pyserial = { version = "^3.5", optional = true }
-tinyrpc = { version = "^1.1.7", extras = ["msgpack"], optional = true }
-flockwave-net = { version = "^7.0.3", extras = ["async"], source = "fury" }
-flockwave-async = { version = "^1.4.0", source = "fury" }
-wrapt = "^1.16.0"
+flockwave-parsers = { source = "fury" }
+flockwave-net = { source = "fury" }
+flockwave-async = { source = "fury" }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
 pytest-trio = ">=0.8.0"
 pytest-cov = "^6.0.0"
 coverage = { extras = ["toml"], version = "^7.0" }
-
-[tool.poetry.extras]
-rpc = ["tinyrpc"]
-serial = ["pyserial"]
 
 [[tool.poetry.source]]
 name = "PyPI"
