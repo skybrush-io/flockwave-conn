@@ -17,12 +17,11 @@ tinyrpc = { version = "^1.1.7", extras = ["msgpack"], optional = true }
 flockwave-net = { version = "^7.0.3", extras = ["async"], source = "fury" }
 flockwave-async = { version = "^1.4.0", source = "fury" }
 wrapt = "^1.16.0"
-hexdump = "^3.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
 pytest-trio = ">=0.8.0"
-pytest-cov = "^5.0.0"
+pytest-cov = "^6.0.0"
 coverage = { extras = ["toml"], version = "^7.0" }
 
 [tool.poetry.extras]

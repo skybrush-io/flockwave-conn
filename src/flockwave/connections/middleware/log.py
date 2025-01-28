@@ -1,5 +1,4 @@
 from functools import partial, singledispatch, wraps
-from hexdump import hexdump
 from typing import (
     cast,
     Any,
@@ -11,6 +10,7 @@ from typing import (
 )
 
 from flockwave.connections.base import Connection, RWConnection
+from flockwave.connections.utils.hexdump import hexdump
 
 from .base import ConnectionMiddleware
 
