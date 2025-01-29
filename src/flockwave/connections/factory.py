@@ -197,7 +197,7 @@ class Factory(Generic[T]):
         Raises:
             UnknownConnectionTypeError: if the type of the connection or listener
                 is not known to the factory
-            UnknownMiddlewareTypeError: if the type of one of the middlewares
+            UnknownMiddlewareTypeError: if the type of one of the middleware
                 is not known to the factory
         """
         if isinstance(specification, str):
