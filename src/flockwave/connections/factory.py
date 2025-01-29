@@ -32,6 +32,7 @@ __all__ = (
     "create_connection",
     "create_connection_factory",
     "create_loopback_connection_pair",
+    "register_builtin_middleware",
 )
 
 T = TypeVar("T")
@@ -259,6 +260,9 @@ class Factory(Generic[T]):
         returns a decorator that will register an arbitrary middleware with the given
         name (if no class is specified).
 
+        Overwrites existing middleware with the same name when already
+        registered.
+
         Parameters:
             name: the name that will be used in the factory to refer
                 to the given middleware. See the `create()`_ method
@@ -331,8 +335,31 @@ class Factory(Generic[T]):
         return self.create(*args, **kwds)
 
 
+def register_builtin_middleware(factory: Factory[Connection]) -> None:
+    """Registers the default middleware that comes with the `connections` module
+    in the given factory.
+
+    Currently registered middleware are:
+
+    - `log`: logs incoming and outgoing messages to the standard output
+    - `rd`: disables writing to the connection, making it read-only.
+    - `wr`: disables reading from the connection, making it write-only.
+    """
+    from .middleware import (
+        ReadOnlyMiddleware,
+        WriteOnlyMiddleware,
+        LoggingMiddleware,
+    )
+
+    factory.register_middleware("log", LoggingMiddleware.create())
+    factory.register_middleware("rd", ReadOnlyMiddleware)
+    factory.register_middleware("wr", WriteOnlyMiddleware)
+
+
 create_connection = Factory[Connection]()
 """Singleton connection factory"""
+
+register_builtin_middleware(create_connection)
 
 
 def create_connection_factory(*args, **kwds):

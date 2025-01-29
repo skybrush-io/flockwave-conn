@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.4.0]
+
+### Added
+
+- Added `register_builtin_middleware()` to register the built-in middleware on
+  an existing connection factory.
+
+### Changed
+
+- The default `create_connection()` factory now registers the `log`, `rd` and
+  `wr` middleware at import time.
+
+## [8.3.0]
+
+### Added
+
+- Added `ReadOnlyMiddleware` and `WriteOnlyMiddleware` to make existing
+  bidirectional connections read-only or write-only.
+
+### Fixed
+
+- `BroadcastAddressOverride` is now exported properly.
+
 ## [8.2.0]
 
 ### Added

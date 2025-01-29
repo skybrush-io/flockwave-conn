@@ -24,6 +24,7 @@ from .factory import (
     create_connection,
     create_connection_factory,
     create_loopback_connection_pair,
+    register_builtin_middleware,
 )
 from .file import FileConnection
 from .process import ProcessConnection
@@ -82,6 +83,7 @@ __all__ = (
     "create_loopback_connection_pair",
     "get_connection_capabilities",
     "open_unix_listeners",
+    "register_builtin_middleware",
     "serve_unix",
     "supervise",
 )
