@@ -68,7 +68,7 @@ class ConnectionSupervisor:
         self,
         connection: Connection,
         *,
-        task: ConnectionTask = None,
+        task: Optional[ConnectionTask] = None,
         policy: Optional[SupervisionPolicy] = None,
     ):
         """Adds a connection to supervise.
@@ -139,6 +139,11 @@ class ConnectionSupervisor:
         policy = policy or self._policy
 
         if isinstance(connection, ListenerConnection):
+            if task is None:
+                raise RuntimeError(
+                    "task must be specified for ListenerConnection instances"
+                )
+
             task = partial(self._handle_incoming_connections_from_listener, task=task)
 
         with CancelScope() as scope:
