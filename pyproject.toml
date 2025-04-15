@@ -1,6 +1,6 @@
 [project]
 name = "flockwave-conn"
-version = "8.4.0"
+version = "8.4.1"
 description = "Connection objects for various data sources"
 authors = [{ name = "Tamas Nepusz", email = "tamas@collmot.com" }]
 license = "MIT"
