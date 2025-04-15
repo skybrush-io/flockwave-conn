@@ -24,9 +24,20 @@ SupervisionPolicy = Callable[
     Optional[Union[float, bool]],
 ]
 ConnectionTask = Callable[[Connection], Awaitable[None]]
+C = TypeVar("C", bound="Connection")
 T = TypeVar("T")
 
 log = logging.getLogger(__name__.rpartition(".")[0])
+
+
+@dataclass
+class _Entry:
+    policy: SupervisionPolicy
+    cancel_scope: CancelScope
+    task: Optional[ConnectionTask] = None
+
+    def cancel(self):
+        self.cancel_scope.cancel()
 
 
 class ConnectionSupervisor:
@@ -41,15 +52,6 @@ class ConnectionSupervisor:
     the supervision works in general.
     """
 
-    @dataclass
-    class Entry:
-        policy: SupervisionPolicy
-        cancel_scope: CancelScope
-        task: Optional[ConnectionTask] = None
-
-        def cancel(self):
-            self.cancel_scope.cancel()
-
     def __init__(self, policy: Optional[SupervisionPolicy] = None):
         """Constructor.
 
@@ -59,7 +61,7 @@ class ConnectionSupervisor:
         """
         self._policy = policy or default_policy
 
-        self._entries: dict[Connection, ConnectionSupervisor.Entry] = {}
+        self._entries: dict[Connection, _Entry] = {}
         self._nursery: Optional[Nursery] = None
 
         self._tx_queue, self._rx_queue = open_memory_channel(32)
@@ -124,8 +126,8 @@ class ConnectionSupervisor:
 
     async def supervise(
         self,
-        connection: Connection,
-        task: Optional[ConnectionTask] = None,
+        connection: C,
+        task: Optional[Callable[[C], Awaitable[None]]] = None,
         policy: Optional[SupervisionPolicy] = None,
     ) -> None:
         """Opens the given connection and supervises it such that it is
@@ -137,6 +139,7 @@ class ConnectionSupervisor:
         assert connection not in self._entries
 
         policy = policy or self._policy
+        should_close = not connection.is_connected
 
         if isinstance(connection, ListenerConnection):
             if task is None:
@@ -147,11 +150,13 @@ class ConnectionSupervisor:
             task = partial(self._handle_incoming_connections_from_listener, task=task)
 
         with CancelScope() as scope:
-            self._entries[connection] = self.Entry(cancel_scope=scope, policy=policy)
+            self._entries[connection] = _Entry(cancel_scope=scope, policy=policy)
             try:
                 await supervise(connection, task=task, policy=self._policy)
             finally:
                 del self._entries[connection]
+                if should_close:
+                    await connection.close()
 
     async def _handle_incoming_connections_from_listener(
         self, connection: ListenerConnection, task: ConnectionTask
@@ -173,9 +178,9 @@ class ConnectionSupervisor:
 
 
 async def supervise(
-    connection: Connection,
+    connection: C,
     *,
-    task: Optional[ConnectionTask] = None,
+    task: Optional[Callable[[C], Awaitable[None]]] = None,
     policy: Optional[SupervisionPolicy] = None,
 ):
     """Asynchronous function that opens a connection when entered, and tries to
