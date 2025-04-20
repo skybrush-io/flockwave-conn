@@ -4,19 +4,18 @@ version = "8.4.1"
 description = "Connection objects for various data sources"
 authors = [{ name = "Tamas Nepusz", email = "tamas@collmot.com" }]
 license = "MIT"
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.10"
 dependencies = [
     "blinker>=1.4",
     "trio>=0.26.2",
     "trio-util>=0.7.0",
-    "flockwave-parsers>=2.0.0",
-    "flockwave-net[async]>=7.0.3",
-    "flockwave-async>=1.4.0",
+    "flockwave-parsers>=3.0.1",
+    "flockwave-net[async]>=8.0.0",
     "wrapt>=1.16.0",
 ]
 
 [project.optional-dependencies]
-rpc = ["tinyrpc[msgpack]>=1.1.7"]
+rpc = ["flockwave-async>=2.0.1", "tinyrpc[msgpack]>=1.1.7"]
 serial = ["pyserial>=3.5"]
 
 [tool.poetry]
