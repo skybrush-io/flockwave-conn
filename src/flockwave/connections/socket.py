@@ -27,6 +27,8 @@ from flockwave.networking import (
     find_interfaces_in_network,
     get_address_of_network_interface,
     get_broadcast_address_of_network_interface,
+    maximize_socket_receive_buffer_size,
+    maximize_socket_send_buffer_size,
     resolve_network_interface_or_address,
 )
 
@@ -518,6 +520,12 @@ class UDPListenerConnection(
     subnet or an interface; ``None`` if there is no inferred broadcast address.
     """
 
+    _maximize_receive_buffer: bool = True
+    """Whether to maximize the size of the receive buffer for the socket."""
+
+    _maximize_send_buffer: bool = False
+    """Whether to maximize the size of the send buffer for the socket."""
+
     _multicast_interface: Optional[str] = None
     """Interface to send multicast packets to, as specified by the user at
     construction time. ``None`` if the user has no preference.
@@ -544,6 +552,8 @@ class UDPListenerConnection(
         broadcast_port: Optional[int] = None,
         multicast_interface: Optional[str] = None,
         multicast_ttl: Optional[int] = None,
+        maximize_receive_buffer: bool = True,
+        maximize_send_buffer: bool = False,
         **kwds,
     ):
         """Constructor.
@@ -585,6 +595,10 @@ class UDPListenerConnection(
             multicast_ttl: the TTL (time-to-live) value of multicast packets
                 sent from this socket. ``None`` means not to configure the
                 TTL value of outbound packets.
+            maximize_receive_buffer: whether to maximize the size of the
+                receive buffer for the socket.
+            maximize_send_buffer: whether to maximize the size of the
+                send buffer for the socket.
         """
         super().__init__()
 
@@ -612,6 +626,9 @@ class UDPListenerConnection(
         else:
             self._allow_broadcast = bool(int(allow_broadcast))
 
+        self._maximize_receive_buffer = bool(int(maximize_receive_buffer))
+        self._maximize_send_buffer = bool(int(maximize_send_buffer))
+
         # Maintain compatibility with InternetAddressMixin
         self._address = self._binding.fixed_address
 
@@ -620,6 +637,12 @@ class UDPListenerConnection(
         anywhere yet.
         """
         sock = create_socket(SOCK_DGRAM)
+
+        # Maximize buffer sizes if needed
+        if self._maximize_receive_buffer:
+            maximize_socket_receive_buffer_size(sock)
+        if self._maximize_send_buffer:
+            maximize_socket_send_buffer_size(sock)
 
         # Set the broadcast interface of the socket if the user specified one
         # explicitly

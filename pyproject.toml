@@ -6,12 +6,12 @@ authors = [{ name = "Tamas Nepusz", email = "tamas@collmot.com" }]
 license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
-    "blinker>=1.4",
-    "trio>=0.26.2",
-    "trio-util>=0.7.0",
-    "flockwave-parsers>=3.0.1",
-    "flockwave-net[async]>=8.0.0",
-    "wrapt>=1.16.0",
+  "blinker>=1.4",
+  "trio>=0.26.2",
+  "trio-util>=0.7.0",
+  "flockwave-parsers>=3.0.1",
+  "flockwave-net[async]>=8.1.0",
+  "wrapt>=1.16.0",
 ]
 
 [project.optional-dependencies]

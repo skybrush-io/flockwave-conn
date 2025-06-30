@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [9.1.0]
+
+### Changed
+
+- `UDPListenerConnection` now attempts to maximize the size of its receive
+  buffer to avoid dropping packets under high load. You can set its
+  `maximize_receive_buffer` property to `False` to get back the old behaviour.
+
 ## [9.0.0]
 
 ### Breaking changes
