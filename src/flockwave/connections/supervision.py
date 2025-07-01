@@ -3,8 +3,7 @@ import logging
 from dataclasses import dataclass
 from functools import partial
 from trio import CancelScope, Nursery, open_memory_channel, open_nursery, sleep
-from trio_util import wait_any
-from typing import Awaitable, Callable, Optional, TypeVar, Union
+from typing import Awaitable, Callable, Optional, Protocol, TypeVar, Union
 
 from .base import Connection, ListenerConnection
 
@@ -12,6 +11,8 @@ from .base import Connection, ListenerConnection
 __all__ = (
     "ConnectionSupervisor",
     "ConnectionTask",
+    "SupervisionFunction",
+    "SupervisionPolicy",
     "supervise",
     "constant_delay_policy",
     "default_policy",
@@ -26,6 +27,21 @@ SupervisionPolicy = Callable[
 ConnectionTask = Callable[[Connection], Awaitable[None]]
 C = TypeVar("C", bound="Connection")
 T = TypeVar("T")
+
+
+class SupervisionFunction(Protocol):
+    """Interface specification for functions with a signature identical to the
+    ``supervise()`` function.
+    """
+
+    def __call__(
+        self,
+        connection: C,
+        *,
+        task: Optional[Callable[[C], Awaitable[None]]] = None,
+        policy: Optional[SupervisionPolicy] = None,
+    ) -> Awaitable[None]: ...
+
 
 log = logging.getLogger(__name__.rpartition(".")[0])
 
@@ -129,6 +145,8 @@ class ConnectionSupervisor:
         connection: C,
         task: Optional[Callable[[C], Awaitable[None]]] = None,
         policy: Optional[SupervisionPolicy] = None,
+        *,
+        name: Optional[str] = None,
     ) -> None:
         """Opens the given connection and supervises it such that it is
         reopened when the connection is connected.
@@ -152,7 +170,7 @@ class ConnectionSupervisor:
         with CancelScope() as scope:
             self._entries[connection] = _Entry(cancel_scope=scope, policy=policy)
             try:
-                await supervise(connection, task=task, policy=self._policy)
+                await supervise(connection, task=task, policy=self._policy, name=name)
             finally:
                 del self._entries[connection]
                 if should_close:
@@ -177,11 +195,22 @@ class ConnectionSupervisor:
             log.exception("Unexpected exception while accepting connections")
 
 
+async def _wait_and_call(f1, f2):
+    """await on f1() and call f2().
+
+    Borrowed from trio_util.wait_any() to allow overriding the name of the
+    function to allow for more meaningful names in instrumentation logs.
+    """
+    await f1()
+    f2()
+
+
 async def supervise(
     connection: C,
     *,
     task: Optional[Callable[[C], Awaitable[None]]] = None,
     policy: Optional[SupervisionPolicy] = None,
+    name: Optional[str] = None,
 ):
     """Asynchronous function that opens a connection when entered, and tries to
     keep it open until the function itself is cancelled.
@@ -214,6 +243,8 @@ async def supervise(
             argument. It will be cancelled if the connection is closed.
         policy: the supervision policy to use; defaults to a constant
             delay of one second between reconnection attempts
+        name: the name to use for the supervision task; ``None`` means to
+            derive it from the task name
     """
     policy = policy or default_policy
 
@@ -224,7 +255,20 @@ async def supervise(
 
             disconnection_event = connection.wait_until_disconnected
             if task:
-                await wait_any(partial(task, connection), disconnection_event)
+                async with open_nursery() as nursery:
+                    cancel = nursery.cancel_scope.cancel
+                    nursery.start_soon(
+                        _wait_and_call,
+                        partial(task, connection),
+                        cancel,
+                        name=f"supervised({name})" if name else None,
+                    )
+                    nursery.start_soon(
+                        _wait_and_call,
+                        disconnection_event,
+                        cancel,
+                        name=f"wait_until_disconnected({name})" if name else None,
+                    )
             else:
                 await disconnection_event()
         except Exception as ex:

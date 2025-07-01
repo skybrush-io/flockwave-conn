@@ -43,6 +43,7 @@ from .stream import StreamConnection, StreamConnectionBase, StreamWrapperConnect
 from .supervision import (
     ConnectionSupervisor,
     ConnectionTask,
+    SupervisionFunction,
     SupervisionPolicy,
     supervise,
 )
@@ -71,6 +72,7 @@ __all__ = (
     "StreamConnection",
     "StreamConnectionBase",
     "StreamWrapperConnection",
+    "SupervisionFunction",
     "SupervisionPolicy",
     "TCPListenerConnection",
     "TCPStreamConnection",
