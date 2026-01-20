@@ -16,7 +16,6 @@ from typing import (
     Iterator,
     Optional,
     TypeVar,
-    Union,
     TYPE_CHECKING,
 )
 from urllib.parse import parse_qs, urlparse
@@ -89,7 +88,7 @@ class Factory(Generic[T]):
         # Parse the parameters into a dict, turning values into integers
         # where applicable
         raw_parameters = parse_qs(parts.query) if parts.query else {}
-        parameters: dict[str, Union[int, str]] = {}
+        parameters: dict[str, int | str] = {}
         for k, v in raw_parameters.items():
             if len(v) > 1:
                 raise ValueError("repeated parameters are not supported")
@@ -119,7 +118,7 @@ class Factory(Generic[T]):
 
         return result
 
-    def create(self, specification: Union[str, dict[str, Any]]) -> T:
+    def create(self, specification: str | dict[str, Any]) -> T:
         """Creates a connection or listener object from its specification. The
         specification may be written in one of two forms: a single URL-style
         string or a dictionary with prescribed keys and values.

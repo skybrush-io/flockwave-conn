@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Iterable, TypeVar, Union, TYPE_CHECKING
+from typing import Awaitable, Callable, Iterable, TypeVar, TYPE_CHECKING
 
 from ..connections import ReadableConnection, WritableConnection
 
@@ -36,12 +36,10 @@ MessageType in the sense that it is always the "real" message type only, without
 an address component, even for channels that use addressing.
 """
 
-Reader = Union[Callable[[], Awaitable[RawType]], ReadableConnection[RawType]]
-Writer = Union[Callable[[RawType], None], WritableConnection[RawType]]
+Reader = Callable[[], Awaitable[RawType]] | ReadableConnection[RawType]
+Writer = Callable[[RawType], None] | WritableConnection[RawType]
 
 Parser = Callable[[RawType], Iterable[MessageType]]
 Encoder = Callable[[MessageType], RawType]
 
-RPCRequestHandler = Callable[
-    ["RPCRequest"], Union["RPCResponse", Awaitable["RPCResponse"]]
-]
+RPCRequestHandler = Callable[[RPCRequest], RPCResponse | Awaitable[RPCResponse]]

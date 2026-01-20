@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from functools import partial
 from trio import CancelScope, Nursery, open_memory_channel, open_nursery, sleep
-from typing import Awaitable, Callable, Optional, Protocol, TypeVar, Union
+from typing import Awaitable, Callable, Optional, Protocol, TypeVar
 
 from .base import Connection, ListenerConnection
 
@@ -21,8 +21,8 @@ __all__ = (
 
 
 SupervisionPolicy = Callable[
-    [Connection, Union[str, Exception]],
-    Optional[Union[float, bool]],
+    [Connection, str | Exception],
+    Optional[float | bool],
 ]
 ConnectionTask = Callable[[Connection], Awaitable[None]]
 C = TypeVar("C", bound="Connection")

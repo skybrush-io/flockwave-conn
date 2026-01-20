@@ -8,7 +8,7 @@ from os import dup
 from trio import BusyResourceError, ClosedResourceError, sleep, to_thread
 from trio.abc import Stream
 from trio.lowlevel import wait_readable
-from typing import Optional, Union
+from typing import Optional
 
 from .factory import create_connection
 from .stream import StreamConnectionBase
@@ -212,9 +212,9 @@ class SerialPortConnection(StreamConnectionBase):
 
     def __init__(
         self,
-        path: Union[str, int] = "",
+        path: str | int = "",
         baud: int = 115200,
-        stopbits: Union[int, float] = 1,
+        stopbits: int | float = 1,
         *,
         vid: Optional[str] = None,
         pid: Optional[str] = None,

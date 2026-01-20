@@ -20,7 +20,7 @@ from trio.socket import (
     SO_BROADCAST,
     SocketType,
 )
-from typing import Literal, cast, Optional, Union
+from typing import Literal, cast, Optional
 
 from flockwave.networking import (
     create_socket,
@@ -145,7 +145,7 @@ class SocketBinding:
         return cls("interface", interface, port)
 
     @classmethod
-    def to_subnet(cls, subnet: Union[IPv4Network, IPv6Network, str], port: int = 0):
+    def to_subnet(cls, subnet: IPv4Network | IPv6Network | str, port: int = 0):
         return cls("subnet", str(subnet), port)
 
     @property
@@ -484,7 +484,7 @@ class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
 class UDPListenerConnection(
     SocketConnectionBase,
     RWConnection[tuple[bytes, IPAddressAndPort], tuple[bytes, IPAddressAndPort]],
-    BroadcastConnection[Union[bytes, tuple[bytes, IPAddressAndPort]]],
+    BroadcastConnection[bytes | tuple[bytes, IPAddressAndPort]],
     BroadcastAddressOverride[IPAddressAndPort],
     CapabilitySupport,
 ):
@@ -546,7 +546,7 @@ class UDPListenerConnection(
         host: Optional[str] = "",
         port: int = 0,
         interface: Optional[str] = None,
-        subnet: Optional[Union[IPv4Network, IPv6Network, str]] = None,
+        subnet: Optional[IPv4Network | IPv6Network | str] = None,
         allow_broadcast: bool = False,
         broadcast_interface: Optional[str] = None,
         broadcast_port: Optional[int] = None,
@@ -741,7 +741,7 @@ class UDPListenerConnection(
             else self._inferred_broadcast_address
         )
 
-    async def broadcast(self, data: Union[bytes, tuple[bytes, IPAddressAndPort]]):
+    async def broadcast(self, data: bytes | tuple[bytes, IPAddressAndPort]):
         """Broadcasts the given data on the connection.
 
         Parameters:
@@ -977,7 +977,7 @@ class SubnetBindingUDPListenerConnection(UDPListenerConnection):
 
     def __init__(
         self,
-        network: Optional[Union[IPv4Network, IPv6Network, str]] = None,
+        network: Optional[IPv4Network | IPv6Network | str] = None,
         port: int = 0,
         **kwds,
     ):

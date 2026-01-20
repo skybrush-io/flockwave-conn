@@ -4,7 +4,7 @@ import sys
 
 from os import fdopen, PathLike
 from trio import open_file
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from .base import FDConnectionBase
 from .factory import create_connection
@@ -20,7 +20,7 @@ class FileConnection(FDConnectionBase):
 
     def __init__(
         self,
-        path: Union[bytes, str, PathLike],
+        path: bytes | str | PathLike,
         mode: str = "rb",
         autoflush: bool = False,
     ):
@@ -48,7 +48,7 @@ class FDConnection(FDConnectionBase):
 
     def __init__(
         self,
-        path: Union[bytes, str, int],
+        path: bytes | str | int,
         mode: Optional[str] = None,
         autoflush: bool = False,
     ):

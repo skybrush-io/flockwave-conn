@@ -7,7 +7,7 @@ from functools import partial
 from subprocess import PIPE, STDOUT
 from trio import Nursery, Process, move_on_after, run_process
 from trio.abc import ReceiveStream, SendStream
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence
 
 from .base import ConnectionBase, RWConnection
 
@@ -20,7 +20,7 @@ class ProcessDescriptor:
     ProcessConnection_ when the connection is opened.
     """
 
-    command: Union[str, Sequence[str]]
+    command: str | Sequence[str]
     """The command that should be used to start the process. May be a single
     string or a list of arguments.
     """
@@ -89,7 +89,7 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
     def create_in_nursery(
         cls,
         nursery: Nursery,
-        args: Union[str, Sequence[str]],
+        args: str | Sequence[str],
         cwd: Optional[str] = None,
         env: Optional[dict[str, str]] = None,
     ):
@@ -97,7 +97,7 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
 
     def __init__(
         self,
-        process: Union[ProcessDescriptor, Callable[[], ProcessDescriptor]],
+        process: ProcessDescriptor | Callable[[], ProcessDescriptor],
         nursery: Nursery,
     ):
         """Constructor.
