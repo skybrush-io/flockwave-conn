@@ -81,11 +81,6 @@ class Connection(metaclass=ABCMeta):
         return self.state.is_transitioning
 
     @abstractmethod
-    async def read(self) -> Any:
-        """Reads data from the connection."""
-        raise NotImplementedError
-
-    @abstractmethod
     @property
     def state(self) -> ConnectionState:
         """Returns the state of the connection; one of the constants from
@@ -105,11 +100,6 @@ class Connection(metaclass=ABCMeta):
         """Blocks the current task until the connection becomes disconnected.
         Returns immediately if the connection is already disconnected.
         """
-        raise NotImplementedError
-
-    @abstractmethod
-    async def write(self, data: Any) -> None:
-        """Writes data to the connection."""
         raise NotImplementedError
 
     async def __aenter__(self):
@@ -143,7 +133,7 @@ class ReadableConnection(Connection, Generic[T]):
     """Interface specification for connection objects that we can read data from."""
 
     @abstractmethod
-    async def read(self) -> T:
+    async def read(self, *args: Any, **kwargs: Any) -> T:
         """Reads some data from the connection.
 
         Returns:
@@ -156,7 +146,7 @@ class WritableConnection(Connection, Generic[T]):
     """Interface specification for connection objects that we can write data to."""
 
     @abstractmethod
-    async def write(self, data: T) -> None:
+    async def write(self, data: T, *args: Any, **kwargs: Any) -> None:
         """Writes the given data to the connection.
 
         Parameters:
