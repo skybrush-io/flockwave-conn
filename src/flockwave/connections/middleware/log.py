@@ -1,11 +1,11 @@
 from functools import partial, singledispatch, wraps
 from typing import (
-    cast,
     Any,
     Callable,
     Generic,
     Iterable,
     TypeVar,
+    cast,
 )
 
 from flockwave.connections.base import Connection, RWConnection

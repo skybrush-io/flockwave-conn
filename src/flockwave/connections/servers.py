@@ -4,17 +4,16 @@ or other protocols.
 
 import os
 import stat
-
 from math import inf
 from socket import socket
 from typing import Awaitable, Callable
 from uuid import uuid4
 
 from trio import (
+    TASK_STATUS_IGNORED,
     Nursery,
     SocketListener,
     SocketStream,
-    TASK_STATUS_IGNORED,
     fail_after,
     serve_listeners,
     serve_tcp,

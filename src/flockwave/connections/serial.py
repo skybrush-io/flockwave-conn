@@ -2,9 +2,9 @@
 
 import platform
 import re
-
 from fnmatch import fnmatch
 from os import dup
+
 from trio import BusyResourceError, ClosedResourceError, sleep, to_thread
 from trio.abc import Stream
 from trio.lowlevel import wait_readable

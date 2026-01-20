@@ -1,10 +1,10 @@
 """File-based connection object."""
 
 import sys
-
-from os import fdopen, PathLike
-from trio import open_file
+from os import PathLike, fdopen
 from typing import Any
+
+from trio import open_file
 
 from .base import FDConnectionBase
 from .factory import create_connection

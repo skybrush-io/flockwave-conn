@@ -31,13 +31,13 @@ from .process import ProcessConnection
 from .serial import SerialPortConnection
 from .servers import open_unix_listeners, serve_unix
 from .socket import (
+    BroadcastUDPListenerConnection,
+    MulticastUDPListenerConnection,
     TCPListenerConnection,
     TCPStreamConnection,
     UDPListenerConnection,
     UDPSocketConnection,
     UnixDomainSocketConnection,
-    MulticastUDPListenerConnection,
-    BroadcastUDPListenerConnection,
 )
 from .stream import StreamConnection, StreamConnectionBase, StreamWrapperConnection
 from .supervision import (

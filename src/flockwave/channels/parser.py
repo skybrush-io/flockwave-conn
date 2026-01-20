@@ -4,6 +4,7 @@ ReadableConnection_ and yields parsed message objects.
 
 from collections import deque
 from inspect import iscoroutinefunction
+
 from trio import EndOfChannel
 from trio.abc import ReceiveChannel
 

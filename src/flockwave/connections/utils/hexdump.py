@@ -108,8 +108,8 @@ def normalize_py():
     """
     if sys.platform == "win32":
         # set sys.stdout to binary mode on Windows
-        import os
         import msvcrt
+        import os
 
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
 

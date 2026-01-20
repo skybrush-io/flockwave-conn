@@ -1,6 +1,7 @@
 """Base middleware classes."""
 
 from typing import Generic, TypeVar
+
 from wrapt import ObjectProxy
 
 from flockwave.connections.base import Connection

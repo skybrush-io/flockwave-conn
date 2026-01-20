@@ -2,15 +2,14 @@
 
 import logging
 import os
-
 from abc import ABCMeta, abstractmethod
-from blinker import Signal
 from enum import Enum
 from functools import partial
-from trio import CancelScope, Event, Nursery, TASK_STATUS_IGNORED, wrap_file
-from trio_util import AsyncBool
 from typing import Any, Callable, Generic, Protocol, TypeVar
 
+from blinker import Signal
+from trio import TASK_STATUS_IGNORED, CancelScope, Event, Nursery, wrap_file
+from trio_util import AsyncBool
 
 __all__ = (
     "BroadcastConnection",

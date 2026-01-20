@@ -1,25 +1,10 @@
 """Connections via TCP or UDP sockets."""
 
 import struct
-
 from abc import abstractmethod
 from dataclasses import dataclass
 from errno import EADDRNOTAVAIL
-from ipaddress import ip_address, ip_network, IPv4Network, IPv6Network
-from trio import open_tcp_stream, to_thread, SocketStream
-from trio.socket import (
-    inet_aton,
-    socket,
-    IPPROTO_IP,
-    IP_ADD_MEMBERSHIP,
-    IP_MULTICAST_IF,
-    IP_MULTICAST_TTL,
-    SOCK_DGRAM,
-    SOCK_STREAM,
-    SOL_SOCKET,
-    SO_BROADCAST,
-    SocketType,
-)
+from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
 from typing import Literal, cast
 
 from flockwave.networking import (
@@ -30,6 +15,20 @@ from flockwave.networking import (
     maximize_socket_receive_buffer_size,
     maximize_socket_send_buffer_size,
     resolve_network_interface_or_address,
+)
+from trio import SocketStream, open_tcp_stream, to_thread
+from trio.socket import (
+    IP_ADD_MEMBERSHIP,
+    IP_MULTICAST_IF,
+    IP_MULTICAST_TTL,
+    IPPROTO_IP,
+    SO_BROADCAST,
+    SOCK_DGRAM,
+    SOCK_STREAM,
+    SOL_SOCKET,
+    SocketType,
+    inet_aton,
+    socket,
 )
 
 from .base import (

@@ -1,12 +1,11 @@
 import logging
-
 from dataclasses import dataclass
 from functools import partial
-from trio import CancelScope, Nursery, open_memory_channel, open_nursery, sleep
 from typing import Awaitable, Callable, Protocol, TypeVar
 
-from .base import Connection, ListenerConnection
+from trio import CancelScope, Nursery, open_memory_channel, open_nursery, sleep
 
+from .base import Connection, ListenerConnection
 
 __all__ = (
     "ConnectionSupervisor",

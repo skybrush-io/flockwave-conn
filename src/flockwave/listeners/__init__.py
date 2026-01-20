@@ -18,7 +18,7 @@ states are stable.
 
 from .base import Listener, ListenerBase, ListenerState
 from .factory import create_listener, create_listener_factory
-from .socket import UnixDomainSocketListener, TCPSocketListener
+from .socket import TCPSocketListener, UnixDomainSocketListener
 
 __all__ = (
     "Listener",

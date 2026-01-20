@@ -1,9 +1,8 @@
 from trio import serve_tcp
 
+from ..connections.servers import serve_unix
 from .base import TrioListenerBase
 from .factory import create_listener
-
-from ..connections.servers import serve_unix
 
 __all__ = ("TCPSocketListener", "UnixDomainSocketListener")
 

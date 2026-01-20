@@ -1,7 +1,8 @@
 """Dummy connection that does nothing."""
 
-from trio import sleep, sleep_forever
 from typing import Any
+
+from trio import sleep, sleep_forever
 
 from .base import ConnectionBase, RWConnection
 from .factory import create_connection

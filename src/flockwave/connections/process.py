@@ -5,9 +5,10 @@ a forked process and writes to its stdin.
 from dataclasses import dataclass
 from functools import partial
 from subprocess import PIPE, STDOUT
+from typing import Callable, Sequence
+
 from trio import Nursery, Process, move_on_after, run_process
 from trio.abc import ReceiveStream, SendStream
-from typing import Callable, Sequence
 
 from .base import ConnectionBase, RWConnection
 

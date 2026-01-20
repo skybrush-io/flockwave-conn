@@ -1,8 +1,9 @@
 """Connection class that wraps a Trio bidirectional byte stream."""
 
 from abc import abstractmethod
-from trio.abc import Stream
 from typing import Awaitable, Callable
+
+from trio.abc import Stream
 
 from .base import (
     ConnectionBase,

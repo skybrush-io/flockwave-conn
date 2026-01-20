@@ -8,9 +8,10 @@ from __future__ import annotations
 from collections import deque
 from contextlib import asynccontextmanager
 from logging import Logger
+from typing import TYPE_CHECKING, Generic, cast
+
 from trio import EndOfChannel
 from trio.abc import Channel
-from typing import Generic, TYPE_CHECKING, cast
 
 from flockwave.connections.base import BroadcastConnection, RWConnection
 from flockwave.connections.capabilities import get_connection_capabilities

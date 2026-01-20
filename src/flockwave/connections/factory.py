@@ -10,12 +10,12 @@ from __future__ import annotations
 from contextlib import contextmanager
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generic,
     Iterator,
     TypeVar,
-    TYPE_CHECKING,
 )
 from urllib.parse import parse_qs, urlparse
 
@@ -344,9 +344,9 @@ def register_builtin_middleware(factory: Factory[Connection]) -> None:
     - `wr`: disables reading from the connection, making it write-only.
     """
     from .middleware import (
+        LoggingMiddleware,
         ReadOnlyMiddleware,
         WriteOnlyMiddleware,
-        LoggingMiddleware,
     )
 
     factory.register_middleware("log", LoggingMiddleware.create())
@@ -383,6 +383,7 @@ def create_loopback_connection_pair(
             connections without blocking
     """
     from trio import open_memory_channel
+
     from .channel import ChannelConnection
 
     tx1, rx1 = open_memory_channel(buffer_size)

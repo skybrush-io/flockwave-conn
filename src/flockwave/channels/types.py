@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Iterable, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Awaitable, Callable, Iterable, TypeVar
 
 from ..connections import ReadableConnection, WritableConnection
 

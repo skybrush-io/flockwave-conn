@@ -1,5 +1,6 @@
-from trio import sleep_forever
 from typing import Generic, TypeVar
+
+from trio import sleep_forever
 
 from flockwave.connections.base import RWConnection
 

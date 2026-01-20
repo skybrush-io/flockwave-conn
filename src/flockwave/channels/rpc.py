@@ -1,12 +1,12 @@
 from contextlib import asynccontextmanager
-
-from flockwave.concurrency import FutureMap
 from inspect import iscoroutinefunction
 from logging import Logger
+from typing import Any, Callable, cast
+
+from flockwave.concurrency import FutureMap
 from tinyrpc.dispatch import RPCDispatcher
-from tinyrpc.protocols import RPCRequest, RPCResponse, RPCErrorResponse
+from tinyrpc.protocols import RPCErrorResponse, RPCRequest, RPCResponse
 from trio import CancelScope, fail_after, open_memory_channel, open_nursery
-from typing import cast, Any, Callable
 
 from .types import RPCRequestHandler
 

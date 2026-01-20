@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol, TypedDict, TYPE_CHECKING, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, TypedDict, runtime_checkable
 
 if TYPE_CHECKING:
     from .base import Connection
