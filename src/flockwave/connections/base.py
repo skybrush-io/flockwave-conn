@@ -133,7 +133,7 @@ class ReadableConnection(Connection, Generic[T]):
     """Interface specification for connection objects that we can read data from."""
 
     @abstractmethod
-    async def read(self, *args: Any, **kwargs: Any) -> T:
+    async def read(self) -> T:
         """Reads some data from the connection.
 
         Returns:
@@ -146,7 +146,7 @@ class WritableConnection(Connection, Generic[T]):
     """Interface specification for connection objects that we can write data to."""
 
     @abstractmethod
-    async def write(self, data: T, *args: Any, **kwargs: Any) -> None:
+    async def write(self, data: T) -> None:
         """Writes the given data to the connection.
 
         Parameters:
