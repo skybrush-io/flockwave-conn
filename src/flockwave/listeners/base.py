@@ -2,7 +2,7 @@
 
 import logging
 
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from blinker import Signal
 from enum import Enum
 from trio import CancelScope, Event, Nursery, TASK_STATUS_IGNORED
@@ -73,7 +73,8 @@ class Listener(metaclass=ABCMeta):
         """Returns whether listener is currently transitioning."""
         return self.state.is_transitioning
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def state(self) -> ListenerState:
         """Returns the state of the listener; one of the constants from
         the ``ConnectionState`` enum.
