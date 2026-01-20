@@ -8,7 +8,7 @@ from enum import Enum
 from trio import CancelScope, Event, Nursery, TASK_STATUS_IGNORED
 from trio.abc import Stream
 from trio_util import AsyncBool
-from typing import Callable, Optional
+from typing import Callable
 
 
 __all__ = ("Listener", "ListenerState", "ListenerBase")
@@ -267,8 +267,8 @@ class TrioListenerBase(ListenerBase):
     def __init__(
         self,
         *,
-        handler: Optional[TrioConnectionHandler] = None,
-        nursery: Optional[Nursery] = None,
+        handler: TrioConnectionHandler | None = None,
+        nursery: Nursery | None = None,
     ):
         """Constructor.
 

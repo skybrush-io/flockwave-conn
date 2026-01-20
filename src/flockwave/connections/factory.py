@@ -14,7 +14,6 @@ from typing import (
     Callable,
     Generic,
     Iterator,
-    Optional,
     TypeVar,
     TYPE_CHECKING,
 )
@@ -253,7 +252,7 @@ class Factory(Generic[T]):
             return klass
 
     def register_middleware(
-        self, name: str, middleware: Optional[Callable[[T], T]] = None
+        self, name: str, middleware: Callable[[T], T] | None = None
     ):
         """Registers the given middleware for this factory with the given name, or
         returns a decorator that will register an arbitrary middleware with the given

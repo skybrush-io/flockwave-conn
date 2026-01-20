@@ -4,7 +4,7 @@ import sys
 
 from os import fdopen, PathLike
 from trio import open_file
-from typing import Any, Optional
+from typing import Any
 
 from .base import FDConnectionBase
 from .factory import create_connection
@@ -49,7 +49,7 @@ class FDConnection(FDConnectionBase):
     def __init__(
         self,
         path: bytes | str | int,
-        mode: Optional[str] = None,
+        mode: str | None = None,
         autoflush: bool = False,
     ):
         """Constructor.

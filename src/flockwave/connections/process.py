@@ -7,7 +7,7 @@ from functools import partial
 from subprocess import PIPE, STDOUT
 from trio import Nursery, Process, move_on_after, run_process
 from trio.abc import ReceiveStream, SendStream
-from typing import Callable, Optional, Sequence
+from typing import Callable, Sequence
 
 from .base import ConnectionBase, RWConnection
 
@@ -25,10 +25,10 @@ class ProcessDescriptor:
     string or a list of arguments.
     """
 
-    cwd: Optional[str] = None
+    cwd: str | None = None
     """Working directory to change to before starting the process."""
 
-    env: Optional[dict[str, str]] = None
+    env: dict[str, str] | None = None
     """The environment of the process; ``None`` to inherit the environment of
     the parent process.
     """
@@ -58,7 +58,7 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
     _nursery: Nursery
     """The Trio nursery that will supervise processes spawned by the connection."""
 
-    _process: Optional[Process] = None
+    _process: Process | None = None
     """The running process if the connection is open; ``None`` if the connection
     is closed.
     """
@@ -68,19 +68,19 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
     descriptor that specifies how to start the process for the connection.
     """
 
-    _stdin: Optional[SendStream]
+    _stdin: SendStream | None
     """The stream where the standard input of the process can be written to;
     ``None`` if the process is not running or if we have started closing the
     process.
     """
 
-    _stdout: Optional[ReceiveStream]
+    _stdout: ReceiveStream | None
     """The stream where the standard output of the process can be read from;
     ``None`` if the process is not running or if we have started closing the
     process.
     """
 
-    exit_code: Optional[int] = None
+    exit_code: int | None = None
     """The exit code of the process if it was terminated; ``None`` if the process
     is still running.
     """
@@ -90,8 +90,8 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
         cls,
         nursery: Nursery,
         args: str | Sequence[str],
-        cwd: Optional[str] = None,
-        env: Optional[dict[str, str]] = None,
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
     ):
         return cls(ProcessDescriptor(args, cwd=cwd, env=env), nursery)
 

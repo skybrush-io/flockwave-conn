@@ -9,7 +9,7 @@ from enum import Enum
 from functools import partial
 from trio import CancelScope, Event, Nursery, TASK_STATUS_IGNORED, wrap_file
 from trio_util import AsyncBool
-from typing import Any, Callable, Generic, Optional, Protocol, TypeVar
+from typing import Any, Callable, Generic, Protocol, TypeVar
 
 
 __all__ = (
@@ -203,7 +203,7 @@ class BroadcastAddressOverride(Generic[T]):
         self.set_user_defined_broadcast_address(None)
 
     @abstractmethod
-    def set_user_defined_broadcast_address(self, address: Optional[T]) -> None:
+    def set_user_defined_broadcast_address(self, address: T | None) -> None:
         """Sets the user-defined broadcast address of the connection.
 
         User-defined broadcast address take precedence over the default
@@ -398,7 +398,7 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABC
         """
     )
 
-    _file_handle: Optional[int] = None
+    _file_handle: int | None = None
     """The file handle associated to the connection."""
 
     _file_handle_owned: bool = False
@@ -406,7 +406,7 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABC
     be closed when the connection is closed.
     """
 
-    _file_object: Optional[AsyncFileLike] = None
+    _file_object: AsyncFileLike | None = None
     """The file-like object associated to the connection."""
 
     autoflush: bool = False
@@ -417,7 +417,7 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABC
         super().__init__()
         self.autoflush = bool(autoflush)
 
-    def fileno(self) -> Optional[int]:
+    def fileno(self) -> int | None:
         """Returns the underlying file handle of the connection, for sake of
         compatibility with other file-like objects in Python. Returns `None`
         if the connection is not open.
@@ -430,7 +430,7 @@ class FDConnectionBase(ConnectionBase, RWConnection[bytes, bytes], metaclass=ABC
             await self._file_object.flush()
 
     @property
-    def fd(self) -> Optional[int]:
+    def fd(self) -> int | None:
         """Returns the underlying file handle of the connection. Returns `None`
         if the connection is not open.
         """
@@ -577,7 +577,7 @@ class TaskConnectionBase(ConnectionBase):
     it is closed.
     """
 
-    _closed_event: Optional[Event]
+    _closed_event: Event | None
 
     def assign_nursery(self, nursery: Nursery) -> None:
         """Assigns a nursery to the connection that will be responsible for

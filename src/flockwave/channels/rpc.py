@@ -6,7 +6,7 @@ from logging import Logger
 from tinyrpc.dispatch import RPCDispatcher
 from tinyrpc.protocols import RPCRequest, RPCResponse, RPCErrorResponse
 from trio import CancelScope, fail_after, open_memory_channel, open_nursery
-from typing import cast, Any, Callable, Optional
+from typing import cast, Any, Callable
 
 from .types import RPCRequestHandler
 
@@ -97,7 +97,7 @@ async def serve_rpc_requests(
     *,
     create_request: Callable[[str, list[Any], dict[str, Any]], RPCRequest],
     handler: RPCRequestHandler | RPCDispatcher,
-    log: Optional[Logger] = None,
+    log: Logger | None = None,
     timeout: float = 5,
 ):
     """Sets up a context that allows us to use the given connection for

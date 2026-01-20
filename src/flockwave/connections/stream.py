@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from trio.abc import Stream
-from typing import Awaitable, Callable, Optional
+from typing import Awaitable, Callable
 
 from .base import (
     ConnectionBase,
@@ -16,7 +16,7 @@ __all__ = ("StreamConnectionBase", "StreamConnection", "StreamWrapperConnection"
 class StreamConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
     """Connection class that wraps a Trio bidirectional byte stream."""
 
-    _stream: Optional[Stream] = None
+    _stream: Stream | None = None
 
     @abstractmethod
     async def _create_stream(self) -> Stream:
@@ -39,7 +39,7 @@ class StreamConnectionBase(ConnectionBase, RWConnection[bytes, bytes]):
         finally:
             self._stream = None
 
-    async def read(self, size: Optional[int] = None) -> bytes:
+    async def read(self, size: int | None = None) -> bytes:
         """Reads some data from the stream.
 
         Parameters:

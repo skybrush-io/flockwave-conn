@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from logging import Logger
 from trio import EndOfChannel
 from trio.abc import Channel
-from typing import Generic, Optional, TYPE_CHECKING, cast
+from typing import Generic, TYPE_CHECKING, cast
 
 from flockwave.connections.base import BroadcastConnection, RWConnection
 from flockwave.connections.capabilities import get_connection_capabilities
@@ -98,7 +98,7 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
     async def serve_rpc_requests(
         self,
         handler: RPCRequestHandler | RPCDispatcher,
-        log: Optional[Logger] = None,
+        log: Logger | None = None,
         timeout: float = 5,
     ):
         """Sets up a context that uses this message channel to serve remote
