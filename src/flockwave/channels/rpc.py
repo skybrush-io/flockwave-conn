@@ -168,14 +168,14 @@ async def serve_rpc_requests(
                         future.set_exception(RPCError(0, str(error)))
                 else:
                     if log:
-                        log.warn(
+                        log.warning(
                             "Duplicate error response received for request {!r}".format(
                                 request_id
                             )
                         )
             else:
                 if log:
-                    log.warn(
+                    log.warning(
                         "Stale error response received for request {!r}".format(
                             request_id
                         )
@@ -192,20 +192,20 @@ async def serve_rpc_requests(
                         future.set_result(message.result)
                 else:
                     if log:
-                        log.warn(
+                        log.warning(
                             "Duplicate response received for request {!r}".format(
                                 request_id
                             )
                         )
             else:
                 if log:
-                    log.warn(
+                    log.warning(
                         "Stale response received for request {!r}".format(request_id)
                     )
 
         else:
             if log:
-                log.warn("Received unknown message type: {!r}".format(type(message)))
+                log.warning("Received unknown message type: {!r}".format(type(message)))
 
     async def handle_inbound_messages() -> None:
         """Task that handles incoming messages and forwards RPC requests to
