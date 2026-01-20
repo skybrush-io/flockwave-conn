@@ -3,7 +3,7 @@
 import logging
 import os
 
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from blinker import Signal
 from enum import Enum
 from functools import partial
@@ -81,7 +81,13 @@ class Connection(metaclass=ABCMeta):
         """Returns whether connection is currently transitioning."""
         return self.state.is_transitioning
 
-    @abstractproperty
+    @abstractmethod
+    async def read(self) -> Any:
+        """Reads data from the connection."""
+        raise NotImplementedError
+
+    @abstractmethod
+    @property
     def state(self) -> ConnectionState:
         """Returns the state of the connection; one of the constants from
         the ``ConnectionState`` enum.
@@ -100,6 +106,11 @@ class Connection(metaclass=ABCMeta):
         """Blocks the current task until the connection becomes disconnected.
         Returns immediately if the connection is already disconnected.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def write(self, data: Any) -> None:
+        """Writes data to the connection."""
         raise NotImplementedError
 
     async def __aenter__(self):
@@ -236,8 +247,8 @@ class ConnectionBase(Connection):
         """Constructor."""
         self._state: ConnectionState = ConnectionState.DISCONNECTED
 
-        self._is_connected = AsyncBool(False)  # type: ignore
-        self._is_disconnected = AsyncBool(True)  # type: ignore
+        self._is_connected = AsyncBool(False)
+        self._is_disconnected = AsyncBool(True)
 
     @property
     def state(self) -> ConnectionState:
