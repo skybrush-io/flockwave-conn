@@ -61,7 +61,7 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
         encoder = create_rpc_encoder(protocol=protocol)
 
         # Wrap the parser and the encoder in a MessageChannel
-        result = cls(connection, parser=parser, encoder=encoder)  # type: ignore
+        result = cls(connection, parser=parser, encoder=encoder)
         result._protocol = protocol
         return result
 

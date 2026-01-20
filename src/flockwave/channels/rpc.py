@@ -124,7 +124,7 @@ async def serve_rpc_requests(
 
     # If we received an RPCDispatcher as a handler, use its dispatch method
     if isinstance(handler, RPCDispatcher):
-        handler = handler.dispatch  # type: ignore
+        handler = handler.dispatch
 
     handler = cast(RPCRequestHandler, handler)
 
@@ -148,7 +148,7 @@ async def serve_rpc_requests(
         if isinstance(message, RPCRequest):
             # TODO(ntamas): send this to a worker?
             if handler_is_async:
-                response = await handler(message)  # type: ignore
+                response = await handler(message)
             else:
                 response = handler(message)
             if response and not message.one_way:

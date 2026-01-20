@@ -44,10 +44,10 @@ class ProcessDescriptor:
                 check=False,
                 stdout=PIPE,
                 stderr=STDOUT,
-                stdin=PIPE,  # type: ignore
+                stdin=PIPE,
             )
         )
-        return process  # type: ignore
+        return process
 
 
 class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):

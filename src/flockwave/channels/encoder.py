@@ -23,7 +23,7 @@ class EncoderChannel(SendChannel[MessageType]):
             self._writer = writer.writer  # type: ignore
             self._closer = getattr(writer, "close", None)
         elif iscoroutinefunction(writer):
-            self._writer = writer  # type: ignore
+            self._writer = writer
             self._closer = None
         else:
             raise TypeError(
