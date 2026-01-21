@@ -42,4 +42,4 @@ Writer = Callable[[RawType], None] | WritableConnection[RawType]
 Parser = Callable[[RawType], Iterable[MessageType]]
 Encoder = Callable[[MessageType], RawType]
 
-RPCRequestHandler = Callable[[RPCRequest], RPCResponse | Awaitable[RPCResponse]]
+RPCRequestHandler = Callable[["RPCRequest"], "RPCResponse" | Awaitable["RPCResponse"]]
