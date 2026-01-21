@@ -1,8 +1,9 @@
 """Dummy connection that does nothing."""
 
+from typing import TypeVar
+
 from trio import sleep
 from trio.abc import ReceiveChannel, SendChannel
-from typing import TypeVar
 
 from .base import ConnectionBase, RWConnection
 

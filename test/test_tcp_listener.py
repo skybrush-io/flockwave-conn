@@ -1,6 +1,6 @@
-from flockwave.connections import TCPListenerConnection
-
 from trio import Event, open_tcp_stream
+
+from flockwave.connections import TCPListenerConnection
 
 
 async def test_tcp_listener_connection(nursery):

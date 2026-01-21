@@ -2,13 +2,12 @@
 
 import platform
 import re
-
 from fnmatch import fnmatch
 from os import dup
+
 from trio import BusyResourceError, ClosedResourceError, sleep, to_thread
 from trio.abc import Stream
 from trio.lowlevel import wait_readable
-from typing import Optional, Union
 
 from .factory import create_connection
 from .stream import StreamConnectionBase
@@ -96,7 +95,7 @@ class _ThreadedSerialPortStream(SerialPortStreamBase):
         self._closing = True
         await to_thread.run_sync(self._device.close)
 
-    async def receive_some(self, max_bytes: Optional[int] = None) -> bytes:
+    async def receive_some(self, max_bytes: int | None = None) -> bytes:
         if max_bytes is None:
             max_bytes = self.DEFAULT_RECEIVE_SIZE
 
@@ -159,7 +158,7 @@ class _FdStreamBasedSerialPortStream(SerialPortStreamBase):
         """Closes the serial port."""
         await self._fd_stream.aclose()
 
-    async def receive_some(self, max_bytes: Optional[int] = None) -> bytes:
+    async def receive_some(self, max_bytes: int | None = None) -> bytes:
         result = await self._fd_stream.receive_some(max_bytes)
         if result:
             return result
@@ -212,15 +211,15 @@ class SerialPortConnection(StreamConnectionBase):
 
     def __init__(
         self,
-        path: Union[str, int] = "",
+        path: str | int = "",
         baud: int = 115200,
-        stopbits: Union[int, float] = 1,
+        stopbits: int | float = 1,
         *,
-        vid: Optional[str] = None,
-        pid: Optional[str] = None,
-        manufacturer: Optional[str] = None,
-        product: Optional[str] = None,
-        serial_number: Optional[str] = None,
+        vid: str | None = None,
+        pid: str | None = None,
+        manufacturer: str | None = None,
+        product: str | None = None,
+        serial_number: str | None = None,
     ):
         """Constructor.
 
@@ -259,7 +258,7 @@ class SerialPortConnection(StreamConnectionBase):
         self._path = path
         self._baud = baud
         self._stopbits = stopbits
-        self._resolved_path: Optional[str] = None
+        self._resolved_path: str | None = None
 
         self._usb_properties = {
             "vid": vid,
@@ -270,7 +269,7 @@ class SerialPortConnection(StreamConnectionBase):
         }
 
     @property
-    def address(self) -> Optional[str]:
+    def address(self) -> str | None:
         """The real path of the serial port that the connection was resolved to
         (after matching USB vendor and product IDs), or `None` if the serial
         port is not connected.
@@ -338,11 +337,11 @@ class SerialPortConnection(StreamConnectionBase):
     def _port_info_matches(
         port_info,
         *,
-        vid: Optional[str] = None,
-        pid: Optional[str] = None,
-        manufacturer: Optional[str] = None,
-        product: Optional[str] = None,
-        serial_number: Optional[str] = None,
+        vid: str | None = None,
+        pid: str | None = None,
+        manufacturer: str | None = None,
+        product: str | None = None,
+        serial_number: str | None = None,
     ) -> bool:
         """Returns whether a USB serial port matches the given properties
         (vendor ID, product ID, manufacturer, product name and serial number).

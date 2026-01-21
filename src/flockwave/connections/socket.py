@@ -1,26 +1,11 @@
 """Connections via TCP or UDP sockets."""
 
 import struct
-
 from abc import abstractmethod
 from dataclasses import dataclass
 from errno import EADDRNOTAVAIL
-from ipaddress import ip_address, ip_network, IPv4Network, IPv6Network
-from trio import open_tcp_stream, to_thread, SocketStream
-from trio.socket import (
-    inet_aton,
-    socket,
-    IPPROTO_IP,
-    IP_ADD_MEMBERSHIP,
-    IP_MULTICAST_IF,
-    IP_MULTICAST_TTL,
-    SOCK_DGRAM,
-    SOCK_STREAM,
-    SOL_SOCKET,
-    SO_BROADCAST,
-    SocketType,
-)
-from typing import Literal, cast, Optional, Union
+from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
+from typing import Literal, cast
 
 from flockwave.networking import (
     create_socket,
@@ -30,6 +15,20 @@ from flockwave.networking import (
     maximize_socket_receive_buffer_size,
     maximize_socket_send_buffer_size,
     resolve_network_interface_or_address,
+)
+from trio import SocketStream, open_tcp_stream, to_thread
+from trio.socket import (
+    IP_ADD_MEMBERSHIP,
+    IP_MULTICAST_IF,
+    IP_MULTICAST_TTL,
+    IPPROTO_IP,
+    SO_BROADCAST,
+    SOCK_DGRAM,
+    SOCK_STREAM,
+    SOL_SOCKET,
+    SocketType,
+    inet_aton,
+    socket,
 )
 
 from .base import (
@@ -61,13 +60,13 @@ class InternetAddressMixin:
     of an IP address and a port.
     """
 
-    _address: Optional[IPAddressAndPort]
+    _address: IPAddressAndPort | None
 
     def __init__(self):
         self._address = None
 
     @property
-    def address(self) -> Optional[IPAddressAndPort]:
+    def address(self) -> IPAddressAndPort | None:
         """Returns the IP address and port of the socket, in the form of a
         tuple.
         """
@@ -145,11 +144,11 @@ class SocketBinding:
         return cls("interface", interface, port)
 
     @classmethod
-    def to_subnet(cls, subnet: Union[IPv4Network, IPv6Network, str], port: int = 0):
+    def to_subnet(cls, subnet: IPv4Network | IPv6Network | str, port: int = 0):
         return cls("subnet", str(subnet), port)
 
     @property
-    def fixed_address(self) -> Optional[IPAddressAndPort]:
+    def fixed_address(self) -> IPAddressAndPort | None:
         """Returns the IP address and port to bind to if the binding is fixed,
         otherwise returns ``None``.
         """
@@ -253,7 +252,7 @@ class SocketBinding:
 class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
     """Base class for connection objects using TCP or UDP sockets."""
 
-    _socket: Optional[SocketType]
+    _socket: SocketType | None
 
     def __init__(self):
         ConnectionBase.__init__(self)
@@ -261,7 +260,7 @@ class SocketConnectionBase(ConnectionBase, InternetAddressMixin):
         self._socket = None
 
     @InternetAddressMixin.address.getter
-    def address(self) -> Optional[IPAddressAndPort]:
+    def address(self) -> IPAddressAndPort | None:
         """Returns the IP address and port of the socket, in the form of a
         tuple.
         """
@@ -484,7 +483,7 @@ class UDPSocketConnection(SocketConnectionBase, RWConnection[bytes, bytes]):
 class UDPListenerConnection(
     SocketConnectionBase,
     RWConnection[tuple[bytes, IPAddressAndPort], tuple[bytes, IPAddressAndPort]],
-    BroadcastConnection[Union[bytes, tuple[bytes, IPAddressAndPort]]],
+    BroadcastConnection[bytes | tuple[bytes, IPAddressAndPort]],
     BroadcastAddressOverride[IPAddressAndPort],
     CapabilitySupport,
 ):
@@ -507,15 +506,15 @@ class UDPListenerConnection(
     is opened.
     """
 
-    _broadcast_interface: Optional[str] = None
+    _broadcast_interface: str | None = None
     """Interface to send broadcast packets to, as specified by the user at
     construction time. ``None`` if the user has no preference.
     """
 
-    _broadcast_port: Optional[int] = None
+    _broadcast_port: int | None = None
     """Port to send broadcast packets to."""
 
-    _inferred_broadcast_address: Optional[IPAddressAndPort] = None
+    _inferred_broadcast_address: IPAddressAndPort | None = None
     """Inferred broadcast address when the socket is open and it is bound to a
     subnet or an interface; ``None`` if there is no inferred broadcast address.
     """
@@ -526,32 +525,32 @@ class UDPListenerConnection(
     _maximize_send_buffer: bool = False
     """Whether to maximize the size of the send buffer for the socket."""
 
-    _multicast_interface: Optional[str] = None
+    _multicast_interface: str | None = None
     """Interface to send multicast packets to, as specified by the user at
     construction time. ``None`` if the user has no preference.
     """
 
-    _multicast_ttl: Optional[int] = None
+    _multicast_ttl: int | None = None
     """Multicast packet time-to-live values, as specified by the user at
     construction time. ``None`` if the user has no preference.
     """
 
-    _user_defined_broadcast_address: Optional[IPAddressAndPort] = None
+    _user_defined_broadcast_address: IPAddressAndPort | None = None
     """User-defined broadcast address; ``None`` if the user did not specify a
     broadcast address explicitly.
     """
 
     def __init__(
         self,
-        host: Optional[str] = "",
+        host: str | None = "",
         port: int = 0,
-        interface: Optional[str] = None,
-        subnet: Optional[Union[IPv4Network, IPv6Network, str]] = None,
+        interface: str | None = None,
+        subnet: IPv4Network | IPv6Network | str | None = None,
         allow_broadcast: bool = False,
-        broadcast_interface: Optional[str] = None,
-        broadcast_port: Optional[int] = None,
-        multicast_interface: Optional[str] = None,
-        multicast_ttl: Optional[int] = None,
+        broadcast_interface: str | None = None,
+        broadcast_port: int | None = None,
+        multicast_interface: str | None = None,
+        multicast_ttl: int | None = None,
         maximize_receive_buffer: bool = True,
         maximize_send_buffer: bool = False,
         **kwds,
@@ -647,7 +646,7 @@ class UDPListenerConnection(
         # Set the broadcast interface of the socket if the user specified one
         # explicitly
         if self._allow_broadcast:
-            effective_broadcast_interface: Optional[str] = None
+            effective_broadcast_interface: str | None = None
 
             sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
             if self._broadcast_interface is not None:
@@ -725,7 +724,7 @@ class UDPListenerConnection(
         return {"can_broadcast": True, "can_receive": True, "can_send": True}
 
     @property
-    def broadcast_address(self) -> Optional[IPAddressAndPort]:
+    def broadcast_address(self) -> IPAddressAndPort | None:
         """The current broadcast address of the connection.
 
         Returns:
@@ -741,7 +740,7 @@ class UDPListenerConnection(
             else self._inferred_broadcast_address
         )
 
-    async def broadcast(self, data: Union[bytes, tuple[bytes, IPAddressAndPort]]):
+    async def broadcast(self, data: bytes | tuple[bytes, IPAddressAndPort]):
         """Broadcasts the given data on the connection.
 
         Parameters:
@@ -765,7 +764,7 @@ class UDPListenerConnection(
         else:
             return await self.write((data, address))
 
-    def set_user_defined_broadcast_address(self, address: Optional[IPAddressAndPort]):
+    def set_user_defined_broadcast_address(self, address: IPAddressAndPort | None):
         """Sets the user-defined broadcast address of the connection.
 
         User-defined broadcast address take precedence over the default (inferred)
@@ -783,7 +782,7 @@ class UDPListenerConnection(
 
     async def read(
         self, size: int = 4096, flags: int = 0
-    ) -> tuple[bytes, Optional[IPAddressAndPort]]:
+    ) -> tuple[bytes, IPAddressAndPort | None]:
         """Reads some data from the connection.
 
         Parameters:
@@ -852,7 +851,7 @@ class BroadcastUDPListenerConnection(UDPListenerConnection):
     Deprecated; use `get_capabilities()` instead.
     """
 
-    def __init__(self, interface: Optional[str] = None, port: int = 0, **kwds):
+    def __init__(self, interface: str | None = None, port: int = 0, **kwds):
         """Constructor.
 
         Parameters:
@@ -904,9 +903,9 @@ class MulticastUDPListenerConnection(UDPListenerConnection):
 
     def __init__(
         self,
-        group: Optional[str] = None,
+        group: str | None = None,
         port: int = 0,
-        interface: Optional[str] = None,
+        interface: str | None = None,
         **kwds,
     ):
         """Constructor.
@@ -977,7 +976,7 @@ class SubnetBindingUDPListenerConnection(UDPListenerConnection):
 
     def __init__(
         self,
-        network: Optional[Union[IPv4Network, IPv6Network, str]] = None,
+        network: IPv4Network | IPv6Network | str | None = None,
         port: int = 0,
         **kwds,
     ):

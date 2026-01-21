@@ -4,17 +4,16 @@ or other protocols.
 
 import os
 import stat
-
 from math import inf
 from socket import socket
-from typing import Awaitable, Callable, Optional
+from typing import Awaitable, Callable
 from uuid import uuid4
 
 from trio import (
+    TASK_STATUS_IGNORED,
     Nursery,
     SocketListener,
     SocketStream,
-    TASK_STATUS_IGNORED,
     fail_after,
     serve_listeners,
     serve_tcp,
@@ -83,7 +82,7 @@ class UnixSocketListener(Listener[SocketStream]):
         return UnixSocketListener(sock, path, inode)
 
     @staticmethod
-    async def create(path, *, mode: int = 0o666, backlog: Optional[int] = None):
+    async def create(path, *, mode: int = 0o666, backlog: int | None = None):
         return await to_thread.run_sync(
             UnixSocketListener._create, path, mode, backlog or 0xFFFF
         )
@@ -124,7 +123,7 @@ class UnixSocketListener(Listener[SocketStream]):
 
 
 async def open_unix_listeners(
-    path: str, *, mode: int = 0o666, backlog: Optional[int] = None
+    path: str, *, mode: int = 0o666, backlog: int | None = None
 ):
     """Creates a :class:`SocketListener` object to listen on a UNIX domain
     socket.
@@ -148,8 +147,8 @@ async def serve_unix(
     path: str,
     *,
     mode: int = 0o666,
-    backlog: Optional[int] = None,
-    handler_nursery: Optional[Nursery] = None,
+    backlog: int | None = None,
+    handler_nursery: Nursery | None = None,
     task_status=TASK_STATUS_IGNORED,
 ):
     """Listen for incoming connections on a given UNIX domain socket, and for

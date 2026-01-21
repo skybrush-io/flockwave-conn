@@ -1,6 +1,6 @@
-import pytest
-
 from itertools import cycle
+
+import pytest
 from trio import open_memory_channel
 
 from flockwave.channels import create_lossy_channel

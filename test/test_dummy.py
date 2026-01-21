@@ -1,7 +1,7 @@
-from flockwave.connections import create_connection, DummyConnection
-from flockwave.connections.middleware import LoggingMiddleware
-
 from trio import move_on_after
+
+from flockwave.connections import DummyConnection, create_connection
+from flockwave.connections.middleware import LoggingMiddleware
 
 
 async def test_dummy_open_close():

@@ -4,6 +4,7 @@ ReadableConnection_ and yields parsed message objects.
 
 from collections import deque
 from inspect import iscoroutinefunction
+
 from trio import EndOfChannel
 from trio.abc import ReceiveChannel
 
@@ -30,8 +31,9 @@ class ParserChannel(ReceiveChannel[MessageType]):
                 f"ReadableConnection or async function expected, got {type(reader)}"
             )
 
-        if callable(getattr(parser, "feed", None)):
-            self._parser = parser.feed
+        feed = getattr(parser, "feed", None)
+        if callable(feed):
+            self._parser = feed
         elif callable(parser):
             self._parser = parser
         else:

@@ -1,15 +1,14 @@
 """Base listener classes."""
 
 import logging
-
-from abc import ABCMeta, abstractmethod, abstractproperty
-from blinker import Signal
+from abc import ABCMeta, abstractmethod
 from enum import Enum
-from trio import CancelScope, Event, Nursery, TASK_STATUS_IGNORED
+from typing import Callable
+
+from blinker import Signal
+from trio import TASK_STATUS_IGNORED, CancelScope, Event, Nursery
 from trio.abc import Stream
 from trio_util import AsyncBool
-from typing import Callable, Optional
-
 
 __all__ = ("Listener", "ListenerState", "ListenerBase")
 
@@ -73,7 +72,8 @@ class Listener(metaclass=ABCMeta):
         """Returns whether listener is currently transitioning."""
         return self.state.is_transitioning
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def state(self) -> ListenerState:
         """Returns the state of the listener; one of the constants from
         the ``ConnectionState`` enum.
@@ -266,8 +266,8 @@ class TrioListenerBase(ListenerBase):
     def __init__(
         self,
         *,
-        handler: Optional[TrioConnectionHandler] = None,
-        nursery: Optional[Nursery] = None,
+        handler: TrioConnectionHandler | None = None,
+        nursery: Nursery | None = None,
     ):
         """Constructor.
 

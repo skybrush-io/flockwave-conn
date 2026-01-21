@@ -1,12 +1,11 @@
 import logging
-
 from dataclasses import dataclass
 from functools import partial
+from typing import Awaitable, Callable, Protocol, TypeVar
+
 from trio import CancelScope, Nursery, open_memory_channel, open_nursery, sleep
-from typing import Awaitable, Callable, Optional, Protocol, TypeVar, Union
 
 from .base import Connection, ListenerConnection
-
 
 __all__ = (
     "ConnectionSupervisor",
@@ -21,8 +20,8 @@ __all__ = (
 
 
 SupervisionPolicy = Callable[
-    [Connection, Union[str, Exception]],
-    Optional[Union[float, bool]],
+    [Connection, str | Exception],
+    float | bool | None,
 ]
 ConnectionTask = Callable[[Connection], Awaitable[None]]
 C = TypeVar("C", bound="Connection")
@@ -38,8 +37,8 @@ class SupervisionFunction(Protocol):
         self,
         connection: C,
         *,
-        task: Optional[Callable[[C], Awaitable[None]]] = None,
-        policy: Optional[SupervisionPolicy] = None,
+        task: Callable[[C], Awaitable[None]] | None = None,
+        policy: SupervisionPolicy | None = None,
     ) -> Awaitable[None]: ...
 
 
@@ -50,7 +49,7 @@ log = logging.getLogger(__name__.rpartition(".")[0])
 class _Entry:
     policy: SupervisionPolicy
     cancel_scope: CancelScope
-    task: Optional[ConnectionTask] = None
+    task: ConnectionTask | None = None
 
     def cancel(self):
         self.cancel_scope.cancel()
@@ -68,7 +67,7 @@ class ConnectionSupervisor:
     the supervision works in general.
     """
 
-    def __init__(self, policy: Optional[SupervisionPolicy] = None):
+    def __init__(self, policy: SupervisionPolicy | None = None):
         """Constructor.
 
         Parameters:
@@ -78,7 +77,7 @@ class ConnectionSupervisor:
         self._policy = policy or default_policy
 
         self._entries: dict[Connection, _Entry] = {}
-        self._nursery: Optional[Nursery] = None
+        self._nursery: Nursery | None = None
 
         self._tx_queue, self._rx_queue = open_memory_channel(32)
 
@@ -86,8 +85,8 @@ class ConnectionSupervisor:
         self,
         connection: Connection,
         *,
-        task: Optional[ConnectionTask] = None,
-        policy: Optional[SupervisionPolicy] = None,
+        task: ConnectionTask | None = None,
+        policy: SupervisionPolicy | None = None,
     ):
         """Adds a connection to supervise.
 
@@ -143,10 +142,10 @@ class ConnectionSupervisor:
     async def supervise(
         self,
         connection: C,
-        task: Optional[Callable[[C], Awaitable[None]]] = None,
-        policy: Optional[SupervisionPolicy] = None,
+        task: Callable[[C], Awaitable[None]] | None = None,
+        policy: SupervisionPolicy | None = None,
         *,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> None:
         """Opens the given connection and supervises it such that it is
         reopened when the connection is connected.
@@ -208,9 +207,9 @@ async def _wait_and_call(f1, f2):
 async def supervise(
     connection: C,
     *,
-    task: Optional[Callable[[C], Awaitable[None]]] = None,
-    policy: Optional[SupervisionPolicy] = None,
-    name: Optional[str] = None,
+    task: Callable[[C], Awaitable[None]] | None = None,
+    policy: SupervisionPolicy | None = None,
+    name: str | None = None,
 ):
     """Asynchronous function that opens a connection when entered, and tries to
     keep it open until the function itself is cancelled.

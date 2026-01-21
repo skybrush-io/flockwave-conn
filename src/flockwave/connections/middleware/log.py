@@ -1,12 +1,11 @@
 from functools import partial, singledispatch, wraps
 from typing import (
-    cast,
     Any,
     Callable,
     Generic,
     Iterable,
     TypeVar,
-    Union,
+    cast,
 )
 
 from flockwave.connections.base import Connection, RWConnection
@@ -41,7 +40,7 @@ def format_string_for_logging(obj: str) -> Iterable[str]:
 @format_object_for_logging.register(bytearray)
 @format_object_for_logging.register(memoryview)
 def format_bytes_for_logging(
-    obj: Union[bytes, bytearray, memoryview],
+    obj: bytes | bytearray | memoryview,
 ) -> Iterable[str]:
     for line in cast(Iterable[str], hexdump(obj, "generator")):
         yield line[line.index(":") + 1 :]
@@ -72,15 +71,12 @@ class LoggingMiddleware(ConnectionMiddleware[RWConnection[RT, WT]], Generic[RT, 
     @classmethod
     def create(
         cls,
-        writer: Union[
-            Callable[[str], None], tuple[Callable[[str], None], Callable[[str], None]]
-        ] = print,
-        formatter: Union[
-            Callable[[Union[RT, WT]], Iterable[str]],
-            tuple[
-                Callable[[RT], Iterable[str]],
-                Callable[[WT], Iterable[str]],
-            ],
+        writer: Callable[[str], None]
+        | tuple[Callable[[str], None], Callable[[str], None]] = print,
+        formatter: Callable[[RT | WT], Iterable[str]]
+        | tuple[
+            Callable[[RT], Iterable[str]],
+            Callable[[WT], Iterable[str]],
         ] = _default_formatters,
     ) -> Callable[[Connection], Connection]:
         """Constructor.

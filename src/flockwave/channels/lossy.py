@@ -3,8 +3,9 @@ mostly for debugging purposes.
 """
 
 from random import random as random_01
-from trio.abc import Channel
 from typing import Callable
+
+from trio.abc import Channel
 
 from .types import MessageType
 

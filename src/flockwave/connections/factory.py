@@ -10,14 +10,12 @@ from __future__ import annotations
 from contextlib import contextmanager
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generic,
     Iterator,
-    Optional,
     TypeVar,
-    Union,
-    TYPE_CHECKING,
 )
 from urllib.parse import parse_qs, urlparse
 
@@ -89,7 +87,7 @@ class Factory(Generic[T]):
         # Parse the parameters into a dict, turning values into integers
         # where applicable
         raw_parameters = parse_qs(parts.query) if parts.query else {}
-        parameters: dict[str, Union[int, str]] = {}
+        parameters: dict[str, int | str] = {}
         for k, v in raw_parameters.items():
             if len(v) > 1:
                 raise ValueError("repeated parameters are not supported")
@@ -119,7 +117,7 @@ class Factory(Generic[T]):
 
         return result
 
-    def create(self, specification: Union[str, dict[str, Any]]) -> T:
+    def create(self, specification: str | dict[str, Any]) -> T:
         """Creates a connection or listener object from its specification. The
         specification may be written in one of two forms: a single URL-style
         string or a dictionary with prescribed keys and values.
@@ -254,7 +252,7 @@ class Factory(Generic[T]):
             return klass
 
     def register_middleware(
-        self, name: str, middleware: Optional[Callable[[T], T]] = None
+        self, name: str, middleware: Callable[[T], T] | None = None
     ):
         """Registers the given middleware for this factory with the given name, or
         returns a decorator that will register an arbitrary middleware with the given
@@ -346,9 +344,9 @@ def register_builtin_middleware(factory: Factory[Connection]) -> None:
     - `wr`: disables reading from the connection, making it write-only.
     """
     from .middleware import (
+        LoggingMiddleware,
         ReadOnlyMiddleware,
         WriteOnlyMiddleware,
-        LoggingMiddleware,
     )
 
     factory.register_middleware("log", LoggingMiddleware.create())
@@ -385,6 +383,7 @@ def create_loopback_connection_pair(
             connections without blocking
     """
     from trio import open_memory_channel
+
     from .channel import ChannelConnection
 
     tx1, rx1 = open_memory_channel(buffer_size)

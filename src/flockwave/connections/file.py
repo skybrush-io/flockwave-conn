@@ -1,10 +1,10 @@
 """File-based connection object."""
 
 import sys
+from os import PathLike, fdopen
+from typing import Any
 
-from os import fdopen, PathLike
 from trio import open_file
-from typing import Any, Optional, Union
 
 from .base import FDConnectionBase
 from .factory import create_connection
@@ -20,7 +20,7 @@ class FileConnection(FDConnectionBase):
 
     def __init__(
         self,
-        path: Union[bytes, str, PathLike],
+        path: bytes | str | PathLike,
         mode: str = "rb",
         autoflush: bool = False,
     ):
@@ -48,8 +48,8 @@ class FDConnection(FDConnectionBase):
 
     def __init__(
         self,
-        path: Union[bytes, str, int],
-        mode: Optional[str] = None,
+        path: bytes | str | int,
+        mode: str | None = None,
         autoflush: bool = False,
     ):
         """Constructor.

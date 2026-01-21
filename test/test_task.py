@@ -1,6 +1,7 @@
-from flockwave.connections.base import TaskConnectionBase
 from pytest import raises
 from trio import sleep, sleep_forever
+
+from flockwave.connections.base import TaskConnectionBase
 
 
 class DummyTaskConnection(TaskConnectionBase):

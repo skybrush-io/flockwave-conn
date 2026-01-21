@@ -18,28 +18,27 @@ dependencies = [
 rpc = ["flockwave-async>=2.0.1", "tinyrpc[msgpack]>=1.1.7"]
 serial = ["pyserial>=3.5"]
 
-[tool.poetry]
-packages = [{ include = "flockwave", from = "src" }]
+[dependency-groups]
+dev = [
+  "pytest>=8.3.2",
+  "coverage[toml]>=7.2.7",
+  "pytest-cov>=6.0.0",
+  "pytest-trio>=0.8.0",
+]
 
-[tool.poetry.dependencies]
-flockwave-parsers = { source = "fury" }
-flockwave-net = { source = "fury" }
-flockwave-async = { source = "fury" }
+[tool.uv.build-backend]
+module-name = "flockwave"
+namespace = true
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.2"
-pytest-trio = ">=0.8.0"
-pytest-cov = "^6.0.0"
-coverage = { extras = ["toml"], version = "^7.0" }
-
-[[tool.poetry.source]]
-name = "PyPI"
-priority = "primary"
-
-[[tool.poetry.source]]
+[[tool.uv.index]]
 name = "fury"
 url = "https://pypi.fury.io/skybrush/"
-priority = "supplemental"
+publish-url = "https://pypi.fury.io/skybrush/"
+
+[tool.uv.sources]
+flockwave-parsers = { index = "fury" }
+flockwave-net = { index = "fury" }
+flockwave-async = { index = "fury" }
 
 [tool.coverage.paths]
 source = ["src"]
@@ -56,8 +55,11 @@ trio_mode = true
 
 [tool.ruff]
 lint.ignore = ["B026", "B905", "C901", "E402", "E501"]
-lint.select = ["B", "C", "E", "F", "W"]
+lint.select = ["B", "C", "E", "F", "I", "W"]
+
+[tool.ty.environment]
+python = ".venv"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.8.0"]
+build-backend = "uv_build"

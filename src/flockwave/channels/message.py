@@ -8,9 +8,10 @@ from __future__ import annotations
 from collections import deque
 from contextlib import asynccontextmanager
 from logging import Logger
+from typing import TYPE_CHECKING, Generic, cast
+
 from trio import EndOfChannel
 from trio.abc import Channel
-from typing import Generic, Optional, Union, TYPE_CHECKING, cast
 
 from flockwave.connections.base import BroadcastConnection, RWConnection
 from flockwave.connections.capabilities import get_connection_capabilities
@@ -61,7 +62,7 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
         encoder = create_rpc_encoder(protocol=protocol)
 
         # Wrap the parser and the encoder in a MessageChannel
-        result = cls(connection, parser=parser, encoder=encoder)  # type: ignore
+        result = cls(connection, parser=parser, encoder=encoder)
         result._protocol = protocol
         return result
 
@@ -97,8 +98,8 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
     @asynccontextmanager
     async def serve_rpc_requests(
         self,
-        handler: Union[RPCRequestHandler, "RPCDispatcher"],
-        log: Optional[Logger] = None,
+        handler: RPCRequestHandler | RPCDispatcher,
+        log: Logger | None = None,
         timeout: float = 5,
     ):
         """Sets up a context that uses this message channel to serve remote

@@ -1,12 +1,12 @@
 from contextlib import asynccontextmanager
-
-from flockwave.concurrency import FutureMap
 from inspect import iscoroutinefunction
 from logging import Logger
+from typing import Any, Callable, cast
+
+from flockwave.concurrency import FutureMap
 from tinyrpc.dispatch import RPCDispatcher
-from tinyrpc.protocols import RPCRequest, RPCResponse, RPCErrorResponse
+from tinyrpc.protocols import RPCErrorResponse, RPCRequest, RPCResponse
 from trio import CancelScope, fail_after, open_memory_channel, open_nursery
-from typing import cast, Any, Callable, Optional, Union
 
 from .types import RPCRequestHandler
 
@@ -96,8 +96,8 @@ async def serve_rpc_requests(
     channel,
     *,
     create_request: Callable[[str, list[Any], dict[str, Any]], RPCRequest],
-    handler: Union[RPCRequestHandler, RPCDispatcher],
-    log: Optional[Logger] = None,
+    handler: RPCRequestHandler | RPCDispatcher,
+    log: Logger | None = None,
     timeout: float = 5,
 ):
     """Sets up a context that allows us to use the given connection for
@@ -124,7 +124,7 @@ async def serve_rpc_requests(
 
     # If we received an RPCDispatcher as a handler, use its dispatch method
     if isinstance(handler, RPCDispatcher):
-        handler = handler.dispatch  # type: ignore
+        handler = handler.dispatch
 
     handler = cast(RPCRequestHandler, handler)
 
@@ -148,7 +148,7 @@ async def serve_rpc_requests(
         if isinstance(message, RPCRequest):
             # TODO(ntamas): send this to a worker?
             if handler_is_async:
-                response = await handler(message)  # type: ignore
+                response = await handler(message)
             else:
                 response = handler(message)
             if response and not message.one_way:
@@ -168,14 +168,14 @@ async def serve_rpc_requests(
                         future.set_exception(RPCError(0, str(error)))
                 else:
                     if log:
-                        log.warn(
+                        log.warning(
                             "Duplicate error response received for request {!r}".format(
                                 request_id
                             )
                         )
             else:
                 if log:
-                    log.warn(
+                    log.warning(
                         "Stale error response received for request {!r}".format(
                             request_id
                         )
@@ -192,20 +192,20 @@ async def serve_rpc_requests(
                         future.set_result(message.result)
                 else:
                     if log:
-                        log.warn(
+                        log.warning(
                             "Duplicate response received for request {!r}".format(
                                 request_id
                             )
                         )
             else:
                 if log:
-                    log.warn(
+                    log.warning(
                         "Stale response received for request {!r}".format(request_id)
                     )
 
         else:
             if log:
-                log.warn("Received unknown message type: {!r}".format(type(message)))
+                log.warning("Received unknown message type: {!r}".format(type(message)))
 
     async def handle_inbound_messages() -> None:
         """Task that handles incoming messages and forwards RPC requests to
