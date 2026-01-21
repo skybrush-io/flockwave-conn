@@ -21,7 +21,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install project
-        run: uv sync -E rpc -E serial
+        run: uv sync --all-extras
 
       - name: Run tests
         run: uv run pytest --cov=src --cov-report=xml -vv
