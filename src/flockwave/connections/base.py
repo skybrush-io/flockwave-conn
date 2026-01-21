@@ -80,8 +80,8 @@ class Connection(metaclass=ABCMeta):
         """Returns whether connection is currently transitioning."""
         return self.state.is_transitioning
 
-    @abstractmethod
     @property
+    @abstractmethod
     def state(self) -> ConnectionState:
         """Returns the state of the connection; one of the constants from
         the ``ConnectionState`` enum.

@@ -72,8 +72,8 @@ class Listener(metaclass=ABCMeta):
         """Returns whether listener is currently transitioning."""
         return self.state.is_transitioning
 
-    @abstractmethod
     @property
+    @abstractmethod
     def state(self) -> ListenerState:
         """Returns the state of the listener; one of the constants from
         the ``ConnectionState`` enum.
