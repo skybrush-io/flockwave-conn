@@ -39,6 +39,7 @@ class SupervisionFunction(Protocol):
         *,
         task: Callable[[C], Awaitable[None]] | None = None,
         policy: SupervisionPolicy | None = None,
+        name: str | None = None,
     ) -> Awaitable[None]: ...
 
 
@@ -210,7 +211,7 @@ async def supervise(
     task: Callable[[C], Awaitable[None]] | None = None,
     policy: SupervisionPolicy | None = None,
     name: str | None = None,
-):
+) -> None:
     """Asynchronous function that opens a connection when entered, and tries to
     keep it open until the function itself is cancelled.
 
