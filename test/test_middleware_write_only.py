@@ -7,7 +7,7 @@ from flockwave.connections.middleware import WriteOnlyMiddleware
 
 async def test_write_only_middleware(autojump_clock):
     foo, bar = create_loopback_connection_pair(int, 1)
-    foo_out = WriteOnlyMiddleware(foo)
+    foo_out = WriteOnlyMiddleware.wrap(foo)
 
     await foo_out.open()
     await bar.open()

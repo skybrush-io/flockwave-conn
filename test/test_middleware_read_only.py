@@ -7,7 +7,7 @@ from flockwave.connections.middleware import ReadOnlyMiddleware
 
 async def test_read_only_middleware(autojump_clock):
     foo, bar = create_loopback_connection_pair(int, 1)
-    bar_in = ReadOnlyMiddleware(bar)
+    bar_in = ReadOnlyMiddleware.wrap(bar)
 
     await foo.open()
     await bar_in.open()
