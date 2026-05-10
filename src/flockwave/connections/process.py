@@ -112,7 +112,7 @@ class ProcessConnection(ConnectionBase, RWConnection[bytes, bytes]):
         """
         super().__init__()
         self._nursery = nursery
-        self._process_descriptor_factory = (
+        self._process_descriptor_factory = (  # ty:ignore[invalid-assignment]
             process if callable(process) else lambda: process
         )
 

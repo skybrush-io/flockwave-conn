@@ -319,6 +319,7 @@ class TCPStreamConnection(StreamConnectionBase, InternetAddressMixin):
         """Creates a new non-blocking reusable TCP socket and connects it to
         the target of the connection.
         """
+        assert self._address is not None
         host, port = self._address
         return await open_tcp_stream(host, port)
 
@@ -782,7 +783,7 @@ class UDPListenerConnection(
 
     async def read(
         self, size: int = 4096, flags: int = 0
-    ) -> tuple[bytes, IPAddressAndPort | None]:
+    ) -> tuple[bytes, IPAddressAndPort]:
         """Reads some data from the connection.
 
         Parameters:
@@ -801,7 +802,7 @@ class UDPListenerConnection(
                 await self.close()
             return data, addr
         else:
-            return (b"", None)
+            return (b"", None)  # ty:ignore[invalid-return-type]
 
     async def write(self, data: tuple[bytes, IPAddressAndPort], flags: int = 0) -> None:
         """Writes the given data to the socket connection.

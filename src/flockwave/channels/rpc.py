@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from inspect import iscoroutinefunction
 from logging import Logger
-from typing import Any, Callable, cast
+from typing import Any, Protocol, cast
 
 from flockwave.concurrency import FutureMap
 from tinyrpc.dispatch import RPCDispatcher
@@ -91,11 +91,17 @@ class RPCRemotePeer:
         self.request = RPCRemoteProxy(sender, one_way=False)
 
 
+class RequestFactory(Protocol):
+    def __call__(
+        self, method: str, args: list[Any], kwargs: dict[str, Any], *, one_way: bool
+    ) -> RPCRequest: ...
+
+
 @asynccontextmanager
 async def serve_rpc_requests(
     channel,
     *,
-    create_request: Callable[[str, list[Any], dict[str, Any]], RPCRequest],
+    create_request: RequestFactory,
     handler: RPCRequestHandler | RPCDispatcher,
     log: Logger | None = None,
     timeout: float = 5,
@@ -124,7 +130,7 @@ async def serve_rpc_requests(
 
     # If we received an RPCDispatcher as a handler, use its dispatch method
     if isinstance(handler, RPCDispatcher):
-        handler = handler.dispatch
+        handler = handler.dispatch  # ty:ignore[invalid-assignment]
 
     handler = cast(RPCRequestHandler, handler)
 
@@ -148,7 +154,7 @@ async def serve_rpc_requests(
         if isinstance(message, RPCRequest):
             # TODO(ntamas): send this to a worker?
             if handler_is_async:
-                response = await handler(message)
+                response = await handler(message)  # ty:ignore[invalid-await]
             else:
                 response = handler(message)
             if response and not message.one_way:
@@ -225,8 +231,8 @@ async def serve_rpc_requests(
                 await channel.send(message)
 
     async def send_request(
-        method: str, *args, one_way=False, timeout=None, **kwds
-    ) -> RPCResponse:
+        method: str, *args, one_way: bool = False, timeout: float | None = None, **kwds
+    ) -> RPCResponse | None:
         """Sends an RPC request with the given method. Additional positional
         and keyword arguments are forwarded intact to the remote side.
 
@@ -238,18 +244,18 @@ async def serve_rpc_requests(
                 use the default timeout
 
         Returns:
-            the response that we have received
+            the response that we have received; `None` if no response was expected
 
         Raises:
             TooSlowError: if the server did not respond in time
         """
         timeout = timeout if timeout is not None else default_timeout
-        request = create_request(method, args, kwds, one_way=one_way)
+        request = create_request(method, list(args), kwds, one_way=one_way)
         needs_response = not one_way and request.unique_id is not None
         request_id = request.unique_id
 
         if needs_response:
-            future_context = pending_requests.new(request_id)
+            future_context = pending_requests.new(str(request_id))
 
         await out_queue_tx.send(request)
 

@@ -26,7 +26,7 @@ Formatter = Callable[[Any], Iterable[str]]
 
 
 @singledispatch
-def format_object_for_logging(obj) -> Iterable[str]:
+def format_object_for_logging(obj: Any) -> Iterable[str]:
     """Formats an object into one or more lines to be printed into a log."""
     yield repr(obj)
 
@@ -92,11 +92,11 @@ class LoggingMiddleware(ConnectionMiddleware[RWConnection[RT, WT]], Generic[RT, 
         """
         writers: tuple[Callable[[str], None], Callable[[str], None]] = (
             (writer, writer) if callable(writer) else writer
-        )
+        )  # ty:ignore[invalid-assignment]
         formatters: tuple[
             Callable[[RT], Iterable[str]],
             Callable[[WT], Iterable[str]],
-        ] = (formatter, formatter) if callable(formatter) else formatter
+        ] = (formatter, formatter) if callable(formatter) else formatter  # ty:ignore[invalid-assignment]
         return partial(cls, writers=writers, formatters=formatters)
 
     def __init__(

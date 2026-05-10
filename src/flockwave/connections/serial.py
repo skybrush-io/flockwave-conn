@@ -112,7 +112,7 @@ class _ThreadedSerialPortStream(SerialPortStreamBase):
 
         raise ClosedResourceError()
 
-    async def send_all(self, data: bytes):
+    async def send_all(self, data: bytes | bytearray | memoryview) -> None:
         if not data:
             # make sure it's a checkpoint
             await sleep(0)
@@ -179,7 +179,7 @@ class _FdStreamBasedSerialPortStream(SerialPortStreamBase):
                 pass
             raise ex
 
-    async def send_all(self, data: bytes) -> None:
+    async def send_all(self, data: bytes) -> None:  # ty:ignore[invalid-method-override]
         """Sends some data over the serial port.
 
         Parameters:

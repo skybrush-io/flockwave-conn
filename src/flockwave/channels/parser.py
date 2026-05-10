@@ -4,11 +4,16 @@ ReadableConnection_ and yields parsed message objects.
 
 from collections import deque
 from inspect import iscoroutinefunction
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Iterable, cast
 
 from trio import EndOfChannel
 from trio.abc import ReceiveChannel
 
 from .types import MessageType, Parser, RawType, Reader
+
+if TYPE_CHECKING:
+    from flockwave.connections.base import Connection
+
 
 __all__ = ("ParserChannel",)
 
@@ -18,9 +23,17 @@ class ParserChannel(ReceiveChannel[MessageType]):
     and yields parsed message objects.
     """
 
+    # TODO(ntamas): RawType should also be a generic type of ParserChannel but we cannot
+    # add it without breaking the API
+
+    _reader: Callable[[], Awaitable]
+    _parser: Callable[[Any], Iterable[MessageType]]
+    _closer: Callable[[], Awaitable[None]] | None = None
+
     def __init__(self, reader: Reader[RawType], parser: Parser[RawType, MessageType]):
         if iscoroutinefunction(getattr(reader, "read", None)):
             # Reader is a Connection
+            reader = cast("Connection[RawType]", reader)
             self._reader = reader.read
             self._closer = getattr(reader, "close", None)
         elif iscoroutinefunction(reader):

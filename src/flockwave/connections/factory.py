@@ -102,7 +102,11 @@ class Factory(Generic[T]):
         base_type, *middleware = parts.scheme.split("+")
 
         # Return the result in dict-styled format
-        result = {"type": base_type, "middleware": middleware, "parameters": parameters}
+        result: dict[str, Any] = {
+            "type": base_type,
+            "middleware": middleware,
+            "parameters": parameters,
+        }
         if host:
             result["host"] = host
         if port is not None:
@@ -350,8 +354,8 @@ def register_builtin_middleware(factory: Factory[Connection]) -> None:
     )
 
     factory.register_middleware("log", LoggingMiddleware.create())
-    factory.register_middleware("rd", ReadOnlyMiddleware)
-    factory.register_middleware("wr", WriteOnlyMiddleware)
+    factory.register_middleware("rd", ReadOnlyMiddleware)  # ty:ignore[invalid-argument-type]
+    factory.register_middleware("wr", WriteOnlyMiddleware)  # ty:ignore[invalid-argument-type]
 
 
 create_connection = Factory[Connection]()

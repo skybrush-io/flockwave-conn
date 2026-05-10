@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections import deque
 from contextlib import asynccontextmanager
 from logging import Logger
-from typing import TYPE_CHECKING, Generic, cast
+from typing import TYPE_CHECKING, Generic, Iterable, Protocol, cast
 
 from trio import EndOfChannel
 from trio.abc import Channel
@@ -33,6 +33,10 @@ if TYPE_CHECKING:
     from tinyrpc.protocols import RPCProtocol
 
 
+class Feedable(Protocol, Generic[RawType, MessageType]):
+    def feed(self, data: RawType) -> Iterable[MessageType]: ...
+
+
 class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
     """Trio-style Channel_ that wraps a readable-writable connection and
     uses a parser to decode the messages read from the connection and an
@@ -42,6 +46,7 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
     _connection: RWConnection[RawType, RawType]
     _encoder: Encoder[MessageType, RawType]
     _parser: Parser[RawType, MessageType]
+    _protocol: RPCProtocol | None = None
 
     @classmethod
     def for_rpc_protocol(
@@ -69,7 +74,7 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
     def __init__(
         self,
         connection: RWConnection[RawType, RawType],
-        parser: Parser[RawType, MessageType],
+        parser: Parser[RawType, MessageType] | Feedable[RawType, MessageType],
         encoder: Encoder[MessageType, RawType],
     ):
         self._connection = connection
@@ -78,9 +83,9 @@ class MessageChannel(Generic[MessageType, RawType], Channel[MessageType]):
         self._protocol = None
 
         if callable(getattr(parser, "feed", None)):
-            self._parser = parser.feed
+            self._parser = cast("Feedable[RawType, MessageType]", parser).feed
         elif callable(parser):
-            self._parser = parser
+            self._parser = cast("Parser[RawType, MessageType]", parser)
         else:
             raise TypeError(f"Parser or callable expected, got {type(parser)}")
 

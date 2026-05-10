@@ -263,6 +263,8 @@ class TrioListenerBase(ListenerBase):
     exceptions appropriately.
     """
 
+    _nursery: Nursery | None = None
+
     def __init__(
         self,
         *,
@@ -279,18 +281,26 @@ class TrioListenerBase(ListenerBase):
         """
         super().__init__()
 
-        self.nursery = nursery
+        self._nursery = nursery
+
         self.handler = handler
 
         self._cancel_scope = None
         self._task_exited = None
+
+    @property
+    def nursery(self):
+        """The Trio nursery that will be the owner of the listener task spawned
+        by this instance."""
+        return self._nursery
 
     async def _close(self):
         if self._cancel_scope:
             self._cancel_scope.cancel()
             self._cancel_scope = None
 
-        await self._task_exited.wait()
+        if self._task_exited is not None:
+            await self._task_exited.wait()
 
     def _handle_exception(self, ex):
         """Handles an exception that happened while running the listener task.
@@ -300,14 +310,14 @@ class TrioListenerBase(ListenerBase):
         log.exception(ex)
 
     async def _open(self):
-        if self.nursery is None:
+        if self._nursery is None:
             raise RuntimeError(
                 "You must assign a nursery to a {!r} before opening it".format(
                     self.__class__
                 )
             )
 
-        await self.nursery.start(self._run_internal_trio_task)
+        await self._nursery.start(self._run_internal_trio_task)
 
     async def _run_internal_trio_task(self, *, task_status=TASK_STATUS_IGNORED):
         """Executes the internal, cancellable Trio task that listens for
@@ -319,6 +329,8 @@ class TrioListenerBase(ListenerBase):
         exceptions raised from the task so you don't have to deal with these
         in `_run()`.
         """
+        assert self._nursery is not None
+
         self._cancel_scope = CancelScope()
         self._task_exited = Event()
 
@@ -330,7 +342,7 @@ class TrioListenerBase(ListenerBase):
 
             # Task exited without it being cancelled; this means that the
             # listener must be closed explicitly.
-            self.nursery.start_soon(self.close)
+            self._nursery.start_soon(self.close)
 
         self._cancel_scope = None
         self._task_exited.set()
