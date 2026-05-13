@@ -1,5 +1,7 @@
 """Connections via TCP or UDP sockets."""
 
+from __future__ import annotations
+
 import struct
 from abc import abstractmethod
 from dataclasses import dataclass
@@ -136,15 +138,17 @@ class SocketBinding:
     """
 
     @classmethod
-    def fixed(cls, host: str, port: int = 0):
+    def fixed(cls, host: str, port: int = 0) -> SocketBinding:
         return cls("fixed", host, port)
 
     @classmethod
-    def to_interface(cls, interface: str, port: int = 0):
+    def to_interface(cls, interface: str, port: int = 0) -> SocketBinding:
         return cls("interface", interface, port)
 
     @classmethod
-    def to_subnet(cls, subnet: IPv4Network | IPv6Network | str, port: int = 0):
+    def to_subnet(
+        cls, subnet: IPv4Network | IPv6Network | str, port: int = 0
+    ) -> SocketBinding:
         return cls("subnet", str(subnet), port)
 
     @property
