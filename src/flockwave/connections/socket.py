@@ -937,7 +937,7 @@ class MulticastUDPListenerConnection(UDPListenerConnection):
         if not ip_address(group).is_multicast:
             raise ValueError("expected multicast group address")
 
-        super().__init__(host=group, port=port)
+        super().__init__(host=group, port=port, allow_broadcast=True)
 
         self._interface = interface
 
